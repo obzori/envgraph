@@ -1,0 +1,18 @@
+# Development source is NOT shipped; only the compiled `dist/` is published.
+# (npm always force-includes package.json, README, and LICENSE regardless.)
+src/
+tests/
+
+# TypeScript configuration and build tooling
+tsconfig.json
+tsconfig.test.json
+
+# Dependencies and local artifacts
+node_modules/
+*.tsbuildinfo
+*.log
+*.tgz
+.env
+.env.*
+coverage/
+
