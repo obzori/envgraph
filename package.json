@@ -1,0 +1,58 @@
+{
+  "name": "envgraph",
+  "version": "0.1.0",
+  "description": "A static analyzer that maps environment variables to the files that use them in JavaScript and TypeScript projects.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "envgraph": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=23.6.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "dev": "node --watch src/cli/index.ts",
+    "start": "node src/cli/index.ts",
+    "test": "npm run typecheck && node --test \"tests/**/*.test.ts\"",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "keywords": [
+    "cli",
+    "environment-variables",
+    "env",
+    "dotenv",
+    "process.env",
+    "static-analysis",
+    "typescript",
+    "javascript",
+    "developer-tools"
+  ],
+  "license": "MIT",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/envgraph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/envgraph/issues"
+  },
+  "homepage": "https://github.com/your-org/envgraph#readme",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.9.3"
+  }
+}
