@@ -45,12 +45,12 @@
   "author": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-org/envgraph.git"
+    "url": "git+https://github.com/obzori/envgraph.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/envgraph/issues"
+    "url": "https://github.com/obzori/envgraph/issues"
   },
-  "homepage": "https://github.com/your-org/envgraph#readme",
+  "homepage": "https://github.com/obzori/envgraph#readme",
   "devDependencies": {
     "@types/node": "^26.2.0",
     "typescript": "^5.9.3"
