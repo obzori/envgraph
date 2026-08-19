@@ -1,5 +1,6 @@
 import type { EnvGraphCommand } from "./types.ts";
 import { envgraphCommand } from "./envgraph.ts";
+import { createCommand } from "./create.ts";
 import { versionCommand } from "./version.ts";
 import { printHelp } from "./help.ts";
 
@@ -11,6 +12,7 @@ import { printHelp } from "./help.ts";
  */
 export const commands: readonly EnvGraphCommand[] = [
 	envgraphCommand,
+	createCommand,
 	{
 		name: "help",
 		description: "Show usage information.",
@@ -30,5 +32,6 @@ export function findCommand(name: string): EnvGraphCommand | undefined {
 	return commands.find((command) => command.name === name);
 }
 
-export { envgraphCommand, versionCommand };
+export { createCommand, envgraphCommand, versionCommand };
 export type { EnvGraphCommand } from "./types.ts";
+
