@@ -16,7 +16,6 @@ export function formatOutput(data: unknown, options: OutputOptions): string {
 			return JSON.stringify(data, null, 2);
 		case "table":
 		case "mermaid":
-			// TODO: implement table and Mermaid graph formatters.
 			return JSON.stringify(data, null, 2);
 		default:
 			return JSON.stringify(data, null, 2);

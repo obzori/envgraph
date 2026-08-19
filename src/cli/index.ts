@@ -15,7 +15,6 @@ import { printVersion } from "./commands/version.ts";
 export function run(argv: readonly string[]): number {
 	const args = argv.slice(2);
 
-	// No arguments: run the default `envgraph` command.
 	if (args.length === 0) {
 		return envgraphCommand.run([]);
 	}
@@ -58,13 +57,10 @@ function isEntryPoint(): boolean {
 	try {
 		return realpathSync(entry) === fileURLToPath(import.meta.url);
 	} catch {
-		// Fall back to a direct comparison if the entry file cannot be resolved.
 		return pathToFileURL(entry).href === import.meta.url;
 	}
 }
 
-// Only execute the CLI when this file is the actual entry point (i.e. run as a
-// binary), not when it is imported as a module (e.g. from unit tests).
 if (isEntryPoint()) {
 	process.exitCode = run(process.argv);
 }

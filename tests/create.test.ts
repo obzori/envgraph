@@ -172,7 +172,6 @@ test("existing .env.example is not silently overwritten without --force", () => 
 test("generated .env.example matches the expected sanitized output", () => {
 	const out = buildExampleContent(EXAMPLE_INPUT);
 	assert.equal(out, EXAMPLE_EXPECTED);
-	// No sensitive value must leak into the output.
 	assert.equal(out.includes("abc123"), false);
 	assert.equal(out.includes("super-secret-value"), false);
 	assert.equal(out.includes("my-password"), false);

@@ -38,7 +38,6 @@ export function buildExampleContent(envContent: string): string {
 	return out.join("\n") + "\n";
 }
 
-// Re-exported so downstream modules get the full env API from one place.
 export type { EnvLine } from "./parser.ts";
 export { parseEnvFile } from "./parser.ts";
 export { isSensitiveName, SENSITIVE_PATTERNS, SENSITIZED_VALUE } from "./sanitizer.ts";

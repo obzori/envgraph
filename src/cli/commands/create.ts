@@ -73,7 +73,6 @@ export function createExample(
 		return { exitCode: 1, stdout, stderr, wrote: false };
 	}
 
-	// This content is never printed; it only flows into the sanitized example.
 	const envContent = readFileSync(envPath, "utf8");
 	const exampleContent = buildExampleContent(envContent);
 
