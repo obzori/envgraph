@@ -13,7 +13,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "envgraph": "./dist/cli/index.js"
+    "envgraph": "dist/cli/index.js"
   },
   "files": [
     "dist"
