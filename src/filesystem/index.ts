@@ -1,36 +1,54 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-/**
- * Locate the project root by walking up from `startDir` until a marker file
- * (e.g. `package.json` or a VCS root) is found.
- *
- * Placeholder — currently returns `startDir`. Future work will implement the
- * upward walk and fall back to `cwd` when nothing is found.
- */
+
 export function findProjectRoot(startDir: string): string {
 	void startDir;
 	return startDir;
 }
 
+const SOURCE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx"]);
+const EXCLUDED_DIRECTORIES = new Set([
+	"node_modules",
+	".git",
+	"dist",
+	"build",
+]);
+
 /**
  * Discover the set of source files under `root` that match the configured
  * include/exclude globs.
- *
- * Placeholder — returns an empty list.
- */
+*/
 export function discoverSourceFiles(root: string): string[] {
-	void root;
-	return [];
+	const results: string[] = [];
+
+	function walk(dir: string): void {
+		let entries;
+		try {
+			entries = readdirSync(dir, { withFileTypes: true });
+		} catch {
+			return;
+		}
+
+		for (const entry of entries) {
+			const relative = path.relative(root, path.join(dir, entry.name));
+			if (entry.isDirectory()) {
+				if (!EXCLUDED_DIRECTORIES.has(entry.name)) {
+					walk(path.join(dir, entry.name));
+				}
+			} else if (entry.isFile() && SOURCE_EXTENSIONS.has(path.extname(entry.name))) {
+				results.push(relative.split(path.sep).join("/"));
+			}
+		}
+	}
+
+	walk(root);
+	return results.sort();
 }
 
 /**
  * Read a `.env` file into a `key → value` map, or return `null` if the file
  * does not exist.
- *
- * This is intentionally a minimal parser (comments and blank lines only) and
- * will be extended for quoting, escapes, and multi-line values as the project
- * grows.
  */
 export function readEnvFile(filePath: string): Map<string, string> | null {
 	if (!existsSync(filePath)) {

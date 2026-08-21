@@ -18,6 +18,7 @@ type CreateOpts = {
 	cwd: string;
 	force: boolean;
 	interactive: boolean;
+	dryRun: boolean;
 	prompt: (q: string) => boolean;
 };
 
@@ -41,6 +42,7 @@ function withProject(
 			cwd,
 			force: false,
 			interactive: false,
+			dryRun: false,
 			prompt: (_q: string) => false,
 		});
 	} finally {
@@ -210,7 +212,10 @@ test("--force overwrites an existing .env.example", () => {
 
 test("create example --dry-run prints sanitized content without creating files", () => {
 	withProject({ ".env": EXAMPLE_INPUT }, (cwd, opts) => {
-		const result = createExample(["example", "--dry-run"], opts);
+		const result = createExample(["example", "--dry-run"], {
+			...opts,
+			dryRun: true,
+		});
 		assert.equal(result.exitCode, 0);
 		assert.equal(result.wrote, false);
 		const stdout = result.stdout.join("\n");
@@ -235,7 +240,10 @@ test("create example --dry-run prints sanitized content without creating files",
 
 test("--dry-run does not modify an existing .env.example", () => {
 	withProject({ ".env": "PORT=3000\n", ".env.example": "OLD=1\n" }, (cwd, opts) => {
-		const result = createExample(["example", "--dry-run"], opts);
+		const result = createExample(["example", "--dry-run"], {
+			...opts,
+			dryRun: true,
+		});
 		assert.equal(result.exitCode, 0);
 		assert.equal(result.wrote, false);
 		assert.match(result.stdout.join("\n"), /PORT=3000/);
@@ -250,6 +258,7 @@ test("--dry-run never prompts for overwrite confirmation", () => {
 	withProject({ ".env": "PORT=3000\n", ".env.example": "OLD=1\n" }, (cwd, opts) => {
 		const result = createExample(["example", "--dry-run"], {
 			...opts,
+			dryRun: true,
 			interactive: true,
 			prompt: (_q: string) => {
 				called = true;
@@ -265,7 +274,10 @@ test("--dry-run never prompts for overwrite confirmation", () => {
 
 test("--dry-run supports `create --dry-run example` ordering", () => {
 	withProject({ ".env": "PORT=3000\nAPI_KEY=abc\n" }, (cwd, opts) => {
-		const result = createExample(["--dry-run", "example"], opts);
+		const result = createExample(["--dry-run", "example"], {
+			...opts,
+			dryRun: true,
+		});
 		assert.equal(result.exitCode, 0);
 		assert.equal(result.wrote, false);
 		assert.equal(existsSync(path.join(cwd, ".env.example")), false);

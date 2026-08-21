@@ -1,0 +1,79 @@
+import { readFileSync } from "node:fs";
+import { discoverSourceFiles } from "../../filesystem/index.ts";
+import { findEnvAccesses } from "./ast.ts";
+
+/** One recorded usage site of an environment variable. */
+export interface EnvVarLocation {
+	/** Path of the file containing the usage, relative to the scan root. */
+	readonly file: string;
+	/** 1-based line number of the usage. */
+	readonly line: number;
+}
+
+/** An environment variable together with every location it is used in. */
+export interface EnvVarUsage {
+	readonly name: string;
+	readonly locations: readonly EnvVarLocation[];
+}
+
+/** Result of scanning a project. */
+export interface ScanResult {
+	/** Detected variables, sorted by name; each with all usage locations. */
+	readonly variables: readonly EnvVarUsage[];
+	/** Files that could not be parsed, with the reason. No source contents. */
+	readonly errors: readonly ScanError[];
+}
+
+/** A file-level scan error (e.g. a syntax error). Never includes source text. */
+export interface ScanError {
+	readonly file: string;
+	readonly message: string;
+}
+
+/**
+ * Scan a project for statically detectable `process.env` usages.
+ */
+export function scanProject(root: string): ScanResult {
+	const byName = new Map<string, EnvVarLocation[]>();
+	const errors: ScanError[] = [];
+
+	for (const file of discoverSourceFiles(root)) {
+		let source: string;
+		try {
+			source = readFileSync(`${root}/${file}`, "utf8");
+		} catch (error) {
+			errors.push({
+				file,
+				message: error instanceof Error ? error.message : String(error),
+			});
+			continue;
+		}
+
+		let accesses;
+		try {
+			accesses = findEnvAccesses(source);
+		} catch (error) {
+			errors.push({
+				file,
+				message: error instanceof Error ? error.message : String(error),
+			});
+			continue;
+		}
+
+		for (const access of accesses) {
+			const locations = byName.get(access.name);
+			const location = { file, line: access.line };
+			if (locations) {
+				locations.push(location);
+			} else {
+				byName.set(access.name, [location]);
+			}
+		}
+	}
+
+	const variables = [...byName.entries()]
+		.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+		.map(([name, locations]) => ({ name, locations }));
+
+	return { variables, errors };
+}
