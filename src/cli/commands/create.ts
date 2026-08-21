@@ -24,6 +24,8 @@ export interface CreateOptions {
 	readonly interactive: boolean;
 	/** Injectable confirmation prompt (see {@link confirmSync}). */
 	readonly prompt: (question: string) => boolean;
+	/** Whether `--dry-run` was passed (print output without writing files). */
+	readonly dryRun: boolean;
 }
 
 export interface CreateOutcome {
@@ -53,7 +55,7 @@ export function createExample(
 	const positional = args.filter((a) => !a.startsWith("-"));
 
 	if (flags.has("--help") || flags.has("-h")) {
-		stdout.push("Usage: envgraph create example [--force]");
+		stdout.push("Usage: envgraph create example [--force] [--dry-run]");
 		stdout.push("Generate a .env.example from the project's .env file.");
 		return { exitCode: 0, stdout, stderr, wrote: false };
 	}
@@ -75,6 +77,17 @@ export function createExample(
 
 	const envContent = readFileSync(envPath, "utf8");
 	const exampleContent = buildExampleContent(envContent);
+
+	if (opts.dryRun) {
+		stdout.push("Dry run: .env.example would contain:");
+		stdout.push("");
+		stdout.push(exampleContent);
+		stdout.push(""); 
+		for (const line of IMPORTANT_WARNING) {
+			stdout.push(line);
+		}
+		return { exitCode: 0, stdout, stderr, wrote: false };
+	}
 
 	if (existsSync(examplePath)) {
 		if (!opts.force) {
@@ -112,13 +125,14 @@ export function createExample(
 export const createCommand: EnvGraphCommand = {
 	name: "create",
 	description: "Generate scaffold files (e.g. .env.example from .env).",
-	usage: "envgraph create example [--force]",
+	usage: "envgraph create example [--force] [--dry-run]",
 	run(args: readonly string[]): number {
 		const outcome = createExample(args, {
 			cwd: process.cwd(),
 			force: args.includes("--force") || args.includes("-f"),
 			interactive: Boolean(process.stdin?.isTTY),
 			prompt: confirmSync,
+			dryRun: args.includes("--dry-run") || args.includes("-d"), 
 		});
 
 		for (const line of outcome.stdout) {

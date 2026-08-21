@@ -208,6 +208,81 @@ test("--force overwrites an existing .env.example", () => {
 	);
 });
 
+test("create example --dry-run prints sanitized content without creating files", () => {
+	withProject({ ".env": EXAMPLE_INPUT }, (cwd, opts) => {
+		const result = createExample(["example", "--dry-run"], opts);
+		assert.equal(result.exitCode, 0);
+		assert.equal(result.wrote, false);
+		const stdout = result.stdout.join("\n");
+		assert.match(stdout, /Dry run/);
+		assert.match(stdout, /PORT=3000/);
+		assert.match(stdout, /LOG=info/);
+		assert.match(stdout, /API_KEY=/);
+		assert.match(stdout, /JWT_SECRET=/);
+		assert.match(stdout, /DATABASE_URL=/);
+		assert.match(stdout, /IMPORTANT/);
+		// Sensitive values must never be printed.
+		assert.equal(stdout.includes("abc123"), false);
+		assert.equal(stdout.includes("super-secret-value"), false);
+		assert.equal(stdout.includes("my-password"), false);
+		assert.equal(stdout.includes("user:password"), false);
+		// No file was created.
+		assert.equal(existsSync(path.join(cwd, ".env.example")), false);
+		// The source .env was not modified.
+		assert.equal(readFileSync(path.join(cwd, ".env"), "utf8"), EXAMPLE_INPUT);
+	});
+});
+
+test("--dry-run does not modify an existing .env.example", () => {
+	withProject({ ".env": "PORT=3000\n", ".env.example": "OLD=1\n" }, (cwd, opts) => {
+		const result = createExample(["example", "--dry-run"], opts);
+		assert.equal(result.exitCode, 0);
+		assert.equal(result.wrote, false);
+		assert.match(result.stdout.join("\n"), /PORT=3000/);
+		assert.equal(readFileSync(path.join(cwd, ".env.example"), "utf8"), "OLD=1\n");
+		// .env untouched.
+		assert.equal(readFileSync(path.join(cwd, ".env"), "utf8"), "PORT=3000\n");
+	});
+});
+
+test("--dry-run never prompts for overwrite confirmation", () => {
+	let called = false;
+	withProject({ ".env": "PORT=3000\n", ".env.example": "OLD=1\n" }, (cwd, opts) => {
+		const result = createExample(["example", "--dry-run"], {
+			...opts,
+			interactive: true,
+			prompt: (_q: string) => {
+				called = true;
+				return false;
+			},
+		});
+		assert.equal(called, false);
+		assert.equal(result.exitCode, 0);
+		assert.equal(result.wrote, false);
+		assert.equal(readFileSync(path.join(cwd, ".env.example"), "utf8"), "OLD=1\n");
+	});
+});
+
+test("--dry-run supports `create --dry-run example` ordering", () => {
+	withProject({ ".env": "PORT=3000\nAPI_KEY=abc\n" }, (cwd, opts) => {
+		const result = createExample(["--dry-run", "example"], opts);
+		assert.equal(result.exitCode, 0);
+		assert.equal(result.wrote, false);
+		assert.equal(existsSync(path.join(cwd, ".env.example")), false);
+		assert.match(result.stdout.join("\n"), /PORT=3000/);
+	});
+});
+
+test("--dry-run still fails when .env does not exist and writes nothing", () => {
+	withProject({}, (cwd, opts) => {
+		const result = createExample(["example", "--dry-run"], opts);
+		assert.equal(result.exitCode, 1);
+		assert.equal(result.wrote, false);
+		assert.ok(result.stderr.length > 0);
+		assert.match(result.stderr[0] ?? "", /not found/i);
+		assert.equal(existsSync(path.join(cwd, ".env.example")), false);
+	});
+});
 test("interactive prompt overwrites only when the user confirms (and declines safely)", () => {
 	let called = false;
 	withProject(
