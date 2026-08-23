@@ -130,5 +130,9 @@ issue first for larger changes: [issue tracker](https://github.com/obzori/envgra
 - [GitHub repository](https://github.com/obzori/envgraph)
 - [Issue tracker](https://github.com/obzori/envgraph/issues)
 - [Changelog / releases](https://github.com/obzori/envgraph/releases)
-
-# MADE WITH ❤️ BY OBZORI, FOR DEVELOPERS :3 nyah nyah
+<br>
+<p>
+  <img src="images/obzori.svg" width="100" alt="Obzori Logo">
+  <br>
+  <sub>Made with ❤️ by obzori</sub>
+</p>
