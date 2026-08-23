@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { EnvGraphCommand } from "./types.ts";
+import { s, stylizeLine } from "../style.ts";
 import { buildExampleContent } from "../../core/env/generator.ts";
 import { confirmSync } from "../prompt.ts";
 
@@ -16,15 +17,10 @@ const IMPORTANT_WARNING: readonly string[] = [
 ];
 
 export interface CreateOptions {
-	/** Directory to read `.env` from and write `.env.example` into. */
 	readonly cwd: string;
-	/** Whether `--force` was passed (overwrite without asking). */
 	readonly force: boolean;
-	/** Whether stdin is an interactive TTY (i.e. a prompt is possible). */
 	readonly interactive: boolean;
-	/** Injectable confirmation prompt (see {@link confirmSync}). */
 	readonly prompt: (question: string) => boolean;
-	/** Whether `--dry-run` was passed (print output without writing files). */
 	readonly dryRun: boolean;
 }
 
@@ -136,10 +132,10 @@ export const createCommand: EnvGraphCommand = {
 		});
 
 		for (const line of outcome.stdout) {
-			process.stdout.write(`${line}\n`);
+			process.stdout.write(`${stylizeLine(line)}\n`);
 		}
 		for (const line of outcome.stderr) {
-			process.stderr.write(`${line}\n`);
+			process.stderr.write(`${s.error(line)}\n`);
 		}
 
 		return outcome.exitCode;

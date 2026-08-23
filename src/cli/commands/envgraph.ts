@@ -1,3 +1,4 @@
+import { s } from "../style.ts";
 import type { EnvGraphCommand } from "./types.ts";
 
 /**
@@ -10,7 +11,9 @@ export const envgraphCommand: EnvGraphCommand = {
 	description: "Check that envgraph is installed and working.",
 	usage: "envgraph",
 	run(): number {
-		process.stdout.write("envgraph is ready.\n");
+		process.stdout.write(
+			`${s.success("✓")} ${s.brand("envgraph")} is ready. ${s.dim("Run `envgraph --help` to get started.")}\n`,
+		);
 		return 0;
 	},
 };

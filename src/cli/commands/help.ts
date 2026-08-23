@@ -1,3 +1,5 @@
+import chalk from "chalk";
+import { s } from "../style.ts";
 import type { EnvGraphCommand } from "./types.ts";
 
 /**
@@ -5,19 +7,19 @@ import type { EnvGraphCommand } from "./types.ts";
  */
 export function printHelp(commands: readonly EnvGraphCommand[]): void {
 	const lines: string[] = [];
-	lines.push("envgraph — map environment variables to the files that use them.");
+	lines.push(`${s.brand("envgraph")} — map environment variables to the files that use them.`);
 	lines.push("");
-	lines.push("Usage:");
-	lines.push("  envgraph [command] [options]");
+	lines.push(s.heading("Usage:"));
+	lines.push(`  ${s.brand("envgraph")} ${chalk.bold("[command]")} ${chalk.dim("[options]")}`);
 	lines.push("");
-	lines.push("Commands:");
+	lines.push(s.heading("Commands:"));
 	for (const command of commands) {
-		lines.push(`  ${command.name.padEnd(10)}${command.description}`);
+		lines.push(`  ${s.name(command.name.padEnd(10))}${command.description}`);
 	}
 	lines.push("");
-	lines.push("Options:");
-	lines.push("  -h, --help     Show this help message.");
-	lines.push("  -v, --version  Print the installed version.");
+	lines.push(s.heading("Options:"));
+	lines.push(`  ${s.flag("-h")}, ${s.flag("--help")}     Show this help message.`);
+	lines.push(`  ${s.flag("-v")}, ${s.flag("--version")}  Print the installed version.`);
 	lines.push("");
 	process.stdout.write(lines.join("\n") + "\n");
 }

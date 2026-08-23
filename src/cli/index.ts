@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import chalk from "chalk";
+import { s } from "./style.ts";
 import { commands, envgraphCommand, findCommand } from "./commands/index.ts";
 import { printHelp } from "./commands/help.ts";
 import { printVersion } from "./commands/version.ts";
@@ -36,7 +38,9 @@ export function run(argv: readonly string[]): number {
 		return command.run(rest);
 	}
 
-	process.stderr.write(`envgraph: unknown command "${first}".\n\n`);
+	process.stderr.write(
+		`${s.error(`envgraph: unknown command "${chalk.bold(first)}".`)}\n\n`,
+	);
 	printHelp(commands);
 	return 1;
 }

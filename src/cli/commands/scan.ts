@@ -1,4 +1,5 @@
 import type { EnvGraphCommand } from "./types.ts";
+import { s, stylizeLine } from "../style.ts";
 import { scanProject } from "../../core/scanner/scanner.ts";
 import type { ScanOptions } from "../../core/scanner/scanner.ts";
 import { countEntries } from "../../filesystem/index.ts";
@@ -157,15 +158,15 @@ export const scanCommand: EnvGraphCommand = {
 		const outcome = runScan(args, process.cwd(), {
 			// Print the large-directory notice live, before parsing starts.
 			notify(line) {
-				process.stdout.write(`${line}\n`);
+				process.stdout.write(`${s.warning(line)}\n`);
 			},
 		});
 
 		for (const line of outcome.stdout) {
-			process.stdout.write(`${line}\n`);
+			process.stdout.write(`${stylizeLine(line)}\n`);
 		}
 		for (const line of outcome.stderr) {
-			process.stderr.write(`${line}\n`);
+			process.stderr.write(`${s.error(line)}\n`);
 		}
 
 		return outcome.exitCode;

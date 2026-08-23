@@ -1,7 +1,9 @@
+import chalk from "chalk";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { EnvGraphCommand } from "./types.ts";
+import { s } from "../style.ts";
 
 /**
  * Resolve the version from the nearest package.json.
@@ -20,7 +22,7 @@ export function readVersion(): string {
 }
 
 export function printVersion(): void {
-	process.stdout.write(`envgraph v${readVersion()}\n`);
+	process.stdout.write(`${s.brand("envgraph")} ${chalk.green(`v${readVersion()}`)}\n`);
 }
 
 export const versionCommand: EnvGraphCommand = {
