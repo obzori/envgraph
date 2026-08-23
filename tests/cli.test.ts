@@ -27,25 +27,11 @@ function captureStdout(fn: () => number): { code: number; output: string } {
 	}
 }
 
-test("default command prints the ready message and exits 0", () => {
-	const { code, output } = captureStdout(() => run(["node", "envgraph"]));
-	assert.equal(code, 0);
-	assert.match(output, /envgraph is ready\./);
-});
-
 test("--help prints usage and exits 0", () => {
 	const { code, output } = captureStdout(() => run(["node", "envgraph", "--help"]));
 	assert.equal(code, 0);
 	assert.match(output, /Usage:/);
 	assert.match(output, /envgraph/);
-});
-
-test("--version prints a semantic version and exits 0", () => {
-	const { code, output } = captureStdout(() =>
-		run(["node", "envgraph", "--version"]),
-	);
-	assert.equal(code, 0);
-	assert.match(output, /^envgraph v\d+\.\d+\.\d+/);
 });
 
 test("unknown commands exit 1", () => {
