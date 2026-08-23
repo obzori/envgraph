@@ -18,8 +18,15 @@ const EXCLUDED_DIRECTORIES = new Set([
 /**
  * Discover the set of source files under `root` that match the configured
  * include/exclude globs.
+ *
+ * @param onFileDiscovered Called during the walk with the running count of
+ *   files found so far — lets callers warn about very large directories
+ *   before the whole tree has been traversed.
 */
-export function discoverSourceFiles(root: string): string[] {
+export function discoverSourceFiles(
+	root: string,
+	onFileDiscovered?: (count: number) => void,
+): string[] {
 	const results: string[] = [];
 
 	function walk(dir: string): void {
@@ -38,6 +45,7 @@ export function discoverSourceFiles(root: string): string[] {
 				}
 			} else if (entry.isFile() && SOURCE_EXTENSIONS.has(path.extname(entry.name))) {
 				results.push(relative.split(path.sep).join("/"));
+				onFileDiscovered?.(results.length);
 			}
 		}
 	}

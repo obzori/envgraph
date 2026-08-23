@@ -61,13 +61,23 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 	const byName = new Map<string, EnvVarLocation[]>();
 	const errors: ScanError[] = [];
 
-	const files = discoverSourceFiles(root);
-
+	let warned = false;
 	const threshold =
 		options?.largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
+
+	const files = discoverSourceFiles(root, (count) => {
+		// Fire once, mid-walk, as soon as the threshold is crossed so the
+		// warning appears before the (possibly very long) traversal ends.
+		if (!warned && count > threshold) {
+			warned = true;
+			options?.onLargeDirectory?.(count);
+		}
+	});
+
 	const largeDirectoryNotice =
 		files.length > threshold ? { fileCount: files.length } : undefined;
-	if (largeDirectoryNotice) {
+	if (largeDirectoryNotice && !warned) {
+		warned = true;
 		options?.onLargeDirectory?.(files.length);
 	}
 
