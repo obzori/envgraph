@@ -22,6 +22,12 @@ export interface ScanResult {
 	readonly variables: readonly EnvVarUsage[];
 	/** Files that could not be parsed, with the reason. No source contents. */
 	readonly errors: readonly ScanError[];
+	/**
+	 * Present when the scanned directory exceeded
+	 * {@link LARGE_DIRECTORY_FILE_THRESHOLD}: the CLI prints a ⚠ warning about
+	 * this.
+	 */
+	readonly largeDirectoryNotice?: { readonly fileCount: number };
 }
 
 /** A file-level scan error (e.g. a syntax error). Never includes source text. */
@@ -31,13 +37,41 @@ export interface ScanError {
 }
 
 /**
+ * A directory with more than this many source files is considered "large" and
+ * triggers the ⚠ scanning notice before parsing starts.
+ */
+export const LARGE_DIRECTORY_FILE_THRESHOLD = 10_000;
+
+export interface ScanOptions {
+	/**
+	 * Called once, right after source-file discovery and before any file is
+	 * read or parsed, when the number of discovered files exceeds the
+	 * large-directory threshold. Use it to warn the user that the scan may
+	 * take a while.
+	 */
+	readonly onLargeDirectory?: (fileCount: number) => void;
+	/** Overrides the large-directory threshold (used by tests). */
+	readonly largeDirectoryThreshold?: number;
+}
+
+/**
  * Scan a project for statically detectable `process.env` usages.
  */
-export function scanProject(root: string): ScanResult {
+export function scanProject(root: string, options?: ScanOptions): ScanResult {
 	const byName = new Map<string, EnvVarLocation[]>();
 	const errors: ScanError[] = [];
 
-	for (const file of discoverSourceFiles(root)) {
+	const files = discoverSourceFiles(root);
+
+	const threshold =
+		options?.largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
+	const largeDirectoryNotice =
+		files.length > threshold ? { fileCount: files.length } : undefined;
+	if (largeDirectoryNotice) {
+		options?.onLargeDirectory?.(files.length);
+	}
+
+	for (const file of files) {
 		let source: string;
 		try {
 			source = readFileSync(`${root}/${file}`, "utf8");
@@ -75,5 +109,5 @@ export function scanProject(root: string): ScanResult {
 		.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
 		.map(([name, locations]) => ({ name, locations }));
 
-	return { variables, errors };
+	return { variables, errors, largeDirectoryNotice };
 }

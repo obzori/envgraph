@@ -45,6 +45,14 @@ Details of discovery and syntax support are in [Scanning](scanning.md).
 
 Output format:
 
+- If the directory contains more than 10 000 source files, a warning is
+  printed before parsing starts:
+
+```text
+⚠ Scanning a large directory: 12345 source files
+This may take a while...
+```
+
 - If nothing is found: `No environment variables found.` — exit `0`.
 - Otherwise a summary line followed by one row per variable, sorted by name:
 

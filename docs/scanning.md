@@ -59,6 +59,19 @@ envgraph scan: could not parse <file>: <message>
 
 Error messages never include source text. The exit code stays `0`.
 
+## Large directories
+
+Before reading or parsing anything, `envgraph scan` counts the discovered
+source files. If there are more than 10 000 (`LARGE_DIRECTORY_FILE_THRESHOLD`
+in `src/core/scanner/scanner.ts`), it immediately prints:
+
+```text
+⚠ Scanning a large directory: 12345 source files
+This may take a while...
+```
+
+The notice goes to stdout before any results; the scan then proceeds as usual.
+
 ## Examples
 
 ```bash

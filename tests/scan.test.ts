@@ -241,6 +241,33 @@ test("runScan prints a compact aligned summary with locations", () => {
 	);
 });
 
+test("runScan warns when scanning a very large directory", () => {
+	withProject(
+		{ "src/app.ts": "process.env.PORT;\n" },
+		(root) => {
+			const outcome = runScan([], root, { largeDirectoryThreshold: 0 });
+			assert.equal(outcome.exitCode, 0);
+			const output = outcome.stdout.join("\n");
+			assert.match(output, /⚠ Scanning a large directory: 1 source files/);
+			assert.match(output, /This may take a while\.\.\./);
+		},
+	);
+});
+
+test("runScan does not warn for normal-sized directories", () => {
+	withProject(
+		{ "src/app.ts": "process.env.PORT;\n" },
+		(root) => {
+			const outcome = runScan([], root);
+			assert.equal(outcome.exitCode, 0);
+			assert.doesNotMatch(
+				outcome.stdout.join("\n"),
+				/Scanning a large directory/,
+			);
+		},
+	);
+});
+
 test("runScan shows a single primary location with ×N for duplicates", () => {
 	withProject(
 		{

@@ -1,5 +1,6 @@
 import type { EnvGraphCommand } from "./types.ts";
 import { scanProject } from "../../core/scanner/scanner.ts";
+import type { ScanOptions } from "../../core/scanner/scanner.ts";
 
 export interface ScanOutcome {
 	readonly exitCode: number;
@@ -15,7 +16,19 @@ export interface ScanOutcome {
  * runner below performs the actual output so this function can be unit-tested
  * without capturing global streams.
  */
-export function runScan(args: readonly string[], root: string): ScanOutcome {
+export function runScan(
+	args: readonly string[],
+	root: string,
+	options?: ScanOptions & {
+		/**
+		 * Called for each warning line as soon as it is produced (before the
+		 * scan finishes). When provided, large-directory notices go here
+		 * instead of the collected `stdout` lines so a real terminal sees them
+		 * immediately.
+		 */
+		readonly notify?: (line: string) => void;
+	},
+): ScanOutcome {
 	const stdout: string[] = [];
 	const stderr: string[] = [];
 
@@ -25,7 +38,23 @@ export function runScan(args: readonly string[], root: string): ScanOutcome {
 		return { exitCode: 0, stdout, stderr };
 	}
 
-	const result = scanProject(root);
+	const { notify, ...scanOptions } = options ?? {};
+	const result = scanProject(root, scanOptions);
+
+	if (result.largeDirectoryNotice !== undefined) {
+		const lines = [
+			`⚠ Scanning a large directory: ${result.largeDirectoryNotice.fileCount} source files`,
+			"This may take a while...",
+		];
+		if (notify) {
+			for (const line of lines) {
+				notify(line);
+			}
+		} else {
+			stdout.push(...lines);
+			stdout.push("");
+		}
+	}
 
 	if (result.variables.length === 0) {
 		stdout.push("No environment variables found.");
@@ -68,7 +97,12 @@ export const scanCommand: EnvGraphCommand = {
 	description: "Detect process.env usages in the project's source files.",
 	usage: "envgraph scan",
 	run(args: readonly string[]): number {
-		const outcome = runScan(args, process.cwd());
+		const outcome = runScan(args, process.cwd(), {
+			// Print the large-directory notice live, before parsing starts.
+			notify(line) {
+				process.stdout.write(`${line}\n`);
+			},
+		});
 
 		for (const line of outcome.stdout) {
 			process.stdout.write(`${line}\n`);
