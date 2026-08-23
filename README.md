@@ -1,15 +1,17 @@
-# envgraph
+<div align="center">
+  <img src="images/logo.svg" width="546" alt="envgraph logo" />
 
-[![npm version](https://img.shields.io/npm/v/envgraph.svg)](https://www.npmjs.com/package/envgraph)
-[![npm downloads](https://img.shields.io/npm/dm/envgraph.svg)](https://www.npmjs.com/package/envgraph)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![npm version](https://img.shields.io/npm/v/envgraph.svg)](https://www.npmjs.com/package/envgraph)
+  [![npm downloads](https://img.shields.io/npm/dm/envgraph.svg)](https://www.npmjs.com/package/envgraph)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Node.js >= 23.6](https://img.shields.io/node/v/envgraph.svg)](https://www.npmjs.com/package/envgraph)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![Node.js >= 23.6](https://img.shields.io/node/v/envgraph.svg)](https://www.npmjs.com/package/envgraph)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-[![GitHub repository](https://img.shields.io/badge/GitHub-obzori%2Fenvgraph-181717?logo=github)](https://github.com/obzori/envgraph)
-[![GitHub issues](https://img.shields.io/github/issues/obzori/envgraph.svg)](https://github.com/obzori/envgraph/issues)
-[![GitHub last commit](https://img.shields.io/github/last-commit/obzori/envgraph.svg)](https://github.com/obzori/envgraph/commits)
+  [![GitHub repository](https://img.shields.io/badge/GitHub-obzori%2Fenvgraph-181717?logo=github)](https://github.com/obzori/envgraph)
+  [![GitHub issues](https://img.shields.io/github/issues/obzori/envgraph.svg)](https://github.com/obzori/envgraph/issues)
+  [![GitHub last commit](https://img.shields.io/github/last-commit/obzori/envgraph.svg)](https://github.com/obzori/envgraph/commits)
+</div>
 
 **envgraph** is a static analyzer that maps environment variables to the files
 that use them in JavaScript and TypeScript projects.
