@@ -88,7 +88,7 @@ export function runScan(
 		}
 	}
 
-	if (result.variables.length === 0) {
+	if (result.variables.length === 0 && result.loaders.length === 0) {
 		stdout.push("No environment variables found.");
 		return { exitCode: 0, stdout, stderr };
 	}
@@ -98,6 +98,9 @@ export function runScan(
 		0,
 	);
 	stdout.push(`${total} usages · ${result.variables.length} variables`);
+	if (result.loaders.length > 0) {
+		stdout.push(`${result.loaders.length} env loaders`);
+	}
 	stdout.push("");
 
 	const nameWidth = Math.max(
@@ -112,6 +115,28 @@ export function runScan(
 		stdout.push(
 			`${variable.name.padEnd(nameWidth)}  ${location}${countSuffix}`,
 		);
+	}
+
+	if (result.loaders.length > 0) {
+		stdout.push("");
+		stdout.push("Environment loaders");
+		const kindWidth = Math.max(
+			...result.loaders.map((loader) => loader.kind.length),
+		);
+		for (const loader of result.loaders) {
+			const target = loader.envFile !== undefined ? ` → ${loader.envFile}` : "";
+			stdout.push(
+				`${loader.kind.padEnd(kindWidth)}  ${loader.file}:${loader.line}${target}`,
+			);
+		}
+	}
+
+	if (result.envFiles.length > 0) {
+		stdout.push("");
+		stdout.push(".env files");
+		for (const envFile of result.envFiles) {
+			stdout.push(envFile);
+		}
 	}
 
 	for (const error of result.errors) {

@@ -55,6 +55,48 @@ export function discoverSourceFiles(
 }
 
 /**
+ * True when a filename matches the common `.env*` convention used by dotenv
+ * and Node.js: exactly `.env`, or `.env.<something>` (`.env.local`,
+ * `.env.production`, `.env.example`, …). Names like `.environment`,
+ * `env.txt`, or `something.env.backup` do not match.
+ */
+export function isEnvFileName(fileName: string): boolean {
+	return fileName === ".env" || fileName.startsWith(".env.");
+}
+
+/**
+ * Discover `.env*` files under `root` (same exclusions as source discovery).
+ * Returns paths relative to `root`, sorted. Never reads file contents —
+ * only names, so no secret values are ever touched.
+ */
+export function discoverEnvFiles(root: string): string[] {
+	const results: string[] = [];
+
+	function walk(dir: string): void {
+		let entries;
+		try {
+			entries = readdirSync(dir, { withFileTypes: true });
+		} catch {
+			return;
+		}
+
+		for (const entry of entries) {
+			const relative = path.relative(root, path.join(dir, entry.name));
+			if (entry.isDirectory()) {
+				if (!EXCLUDED_DIRECTORIES.has(entry.name)) {
+					walk(path.join(dir, entry.name));
+				}
+			} else if (entry.isFile() && isEnvFileName(entry.name)) {
+				results.push(relative.split(path.sep).join("/"));
+			}
+		}
+	}
+
+	walk(root);
+	return results.sort();
+}
+
+/**
  * Cheaply estimate the size of a project tree: counts files and directories
  * under `root`, skipping {@link EXCLUDED_DIRECTORIES}, stopping as soon as
  * more than `limit` entries have been seen. Never reads file contents.

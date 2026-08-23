@@ -8,6 +8,10 @@ What envgraph does today, what it does not, and what is only a placeholder.
   default `envgraph` check.
 - AST-based detection of `process.env.NAME` and `process.env["NAME"]`
   (string literal) in `.js` / `.jsx` / `.ts` / `.tsx` files.
+- Detection of environment loading: `import "dotenv/config"`,
+  `dotenv.config()` (including static `path` options and
+  `require("dotenv").config()`), and Node's `process.loadEnvFile()`.
+- Discovery of `.env*` files by filename convention (contents never read).
 - Grouped, sorted, line-accurate scan report on stdout; parse errors on
   stderr.
 - `.env.example` generation from `.env` with name-based secret blanking,
@@ -22,8 +26,14 @@ Scanning:
   process.env`, `process.env[name]`) are not detected.
 - Other globals such as `import.meta.env` are not scanned.
 - No path filtering options, no custom include/exclude globs from the CLI.
-- Only usage *locations* are reported — no values, no cross-referencing
-  against `.env` keys.
+- Only usage *locations* are reported — no values and no linking of a
+  variable to the `.env` file that defines it (usage and loading are
+  detected separately, but not yet correlated into a dependency graph).
+- Loader detection is limited to the npm `dotenv` package and Node's native
+  `process.loadEnvFile()`; other loaders (`dotenvx`, framework-specific
+  loading, `env-cmd`, …) are not recognized.
+- Import resolution is specifier-based only: no path mapping, tsconfig
+  aliases, or re-export tracking.
 
 `.env` handling:
 

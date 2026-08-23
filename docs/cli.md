@@ -40,8 +40,9 @@ envgraph scan [--force]
 envgraph scan --help   # or -h: print usage, exit 0
 ```
 
-Scans source files for statically detectable `process.env` accesses.
-Details of discovery and syntax support are in [Scanning](scanning.md).
+Scans source files for environment variable usage (`process.env.*`),
+environment loading mechanisms (dotenv, `process.loadEnvFile`), and `.env*`
+files. Details in [Scanning](scanning.md).
 
 Options:
 
@@ -83,7 +84,27 @@ This may take a while...
 ```
 
 - If nothing is found: `No environment variables found.` — exit `0`.
-- Otherwise a summary line followed by one row per variable, sorted by name:
+- Otherwise a summary line (plus a loader count when loaders exist), one row
+  per variable sorted by name, and — only when present — `Environment
+  loaders` and `.env files` blocks:
+
+```text
+1 usages · 1 variables
+1 env loaders
+
+PORT  src/config.ts:1
+
+Environment loaders
+
+dotenv  src/index.ts:1
+
+.env files
+
+.env
+.env.local
+```
+
+Without loaders or `.env` files the output is just the classic format:
 
 ```text
 4 usages · 2 variables

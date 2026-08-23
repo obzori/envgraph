@@ -13,30 +13,35 @@
   [![GitHub last commit](https://img.shields.io/github/last-commit/obzori/envgraph.svg)](https://github.com/obzori/envgraph/commits)
 </div>
 
-**envgraph** is a static analyzer that maps environment variables to the files
-that use them in JavaScript and TypeScript projects.
+**envgraph** is a static analyzer that maps environment variables to the
+files that use them in JavaScript and TypeScript projects — and analyzes how
+those variables are loaded.
 
 ## Why envgraph?
 
 The set of environment variables a project actually reads is scattered across
 many files, and full-text search is noisy and unstructured. envgraph answers
-questions like *"which files read `DATABASE_URL`?"* or *"is `JWT_SECRET` still
-used anywhere?"* by parsing your source files with the TypeScript compiler API —
-not regex — and reporting every variable with exact file and line numbers.
-It can also generate a sanitized `.env.example` from your `.env`.
+questions like *"which files read `DATABASE_URL`?"*, *"is `JWT_SECRET` still
+used anywhere?"*, or *"where do we load `.env` from?"* by parsing your source
+files with the TypeScript compiler API — not regex. It detects both variable
+**usage** (`process.env.PORT`) and environment **loading**
+(`dotenv.config()`, `process.loadEnvFile(".env")`), plus the `.env*` files in
+the project. Values are never read or printed.
 
 It runs on Node.js only, has zero runtime dependencies, and never executes
 your code.
 
 ## Features
 
-- **Scan** — detects `process.env.NAME` (dot) and `process.env["NAME"]`
-  (bracket with string literal) accesses in `.js`, `.jsx`, `.ts`, `.tsx`
-  files, grouped per variable with exact locations.
+- **Usage detection** — `process.env.NAME` (dot) and `process.env["NAME"]`
+  (bracket with string literal), grouped per variable with exact locations.
+- **Loader detection** — `import "dotenv/config"`, `dotenv.config()` (with
+  static `path` options), and Node's native `process.loadEnvFile()`.
+- **`.env` file discovery** — `.env`, `.env.local`, `.env.production`, etc.
 - **Create example** — turns an existing `.env` into a commit-friendly
   `.env.example`, blanking values whose names look like secrets (heuristic).
-- Safe by design: reads source files and `.env`, writes only `.env.example`,
-  and never executes project code.
+- **Safe static analysis** — exact locations only; `.env` values never appear
+  in output; no code execution, no network access.
 
 ## Requirements
 
@@ -53,15 +58,36 @@ npx envgraph <command>
 ## Quick Start
 
 ```bash
-# 1. Find which variables your code uses, and where
+# 1. Find which variables your code uses, where, and how .env is loaded
 npx envgraph scan
 ```
 
-```text
-4 usages · 2 variables
+For a project like:
 
-LOG_LEVEL  src/app.ts:4
-PORT       src/app.ts:1 ×3
+```text
+.env
+.env.local
+src/config.ts
+src/index.ts
+```
+
+where `src/config.ts` contains `process.env.PORT` and `src/index.ts` contains
+`import "dotenv/config";`, the output is:
+
+```text
+1 usages · 1 variables
+1 env loaders
+
+PORT  src/config.ts:1
+
+Environment loaders
+
+dotenv  src/index.ts:1
+
+.env files
+
+.env
+.env.local
 ```
 
 ```bash

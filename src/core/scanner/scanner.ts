@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
-import { discoverSourceFiles } from "../../filesystem/index.ts";
-import { findEnvAccesses } from "./ast.ts";
+import { discoverEnvFiles, discoverSourceFiles } from "../../filesystem/index.ts";
+import { findEnvAccesses, findEnvLoaders } from "./ast.ts";
+import type { EnvLoader } from "./ast.ts";
 
 /** One recorded usage site of an environment variable. */
 export interface EnvVarLocation {
@@ -18,8 +19,19 @@ export interface EnvVarUsage {
 
 /** Result of scanning a project. */
 export interface ScanResult {
-	/** Detected variables, sorted by name; each with all usage locations. */
+	/**
+	 * Detected environment variable usages (e.g. `process.env.PORT`), sorted
+	 * by name; each with all usage locations.
+	 */
 	readonly variables: readonly EnvVarUsage[];
+	/**
+	 * Detected environment loading mechanisms (dotenv, `process.loadEnvFile`),
+	 * sorted by file then line. Kept separate from {@link variables}: loading
+	 * an `.env` file and reading a variable are different concepts.
+	 */
+	readonly loaders: readonly (EnvLoader & { readonly file: string })[];
+	/** `.env*` files found in the project, as paths relative to the root. */
+	readonly envFiles: readonly string[];
 	/** Files that could not be parsed, with the reason. No source contents. */
 	readonly errors: readonly ScanError[];
 	/**
@@ -59,6 +71,7 @@ export interface ScanOptions {
  */
 export function scanProject(root: string, options?: ScanOptions): ScanResult {
 	const byName = new Map<string, EnvVarLocation[]>();
+	const loaders: (EnvLoader & { readonly file: string })[] = [];
 	const errors: ScanError[] = [];
 
 	let warned = false;
@@ -96,6 +109,9 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 		let accesses;
 		try {
 			accesses = findEnvAccesses(source);
+			for (const loader of findEnvLoaders(source)) {
+				loaders.push({ ...loader, file });
+			}
 		} catch (error) {
 			errors.push({
 				file,
@@ -119,5 +135,11 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 		.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
 		.map(([name, locations]) => ({ name, locations }));
 
-	return { variables, errors, largeDirectoryNotice };
+	loaders.sort((a, b) =>
+		a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line,
+	);
+
+	const envFiles = discoverEnvFiles(root);
+
+	return { variables, loaders, envFiles, errors, largeDirectoryNotice };
 }

@@ -7,10 +7,13 @@ and guarantees.
 ## What envgraph reads
 
 - Source files under the working directory with extensions `.js`, `.jsx`,
-  `.ts`, `.tsx` (excluding `node_modules`, `.git`, `dist`, `build`).
+  `.ts`, `.tsx` (excluding `node_modules`, `.git`, `dist`, `build`) — parsed
+  as AST only.
 - Your `.env` file, when you run `envgraph create example`.
+- During `scan`: `.env*` **filenames only** (`.env`, `.env.local`, …) — file
+  contents are never read and values never enter the output.
 
-### NO NETWORK ACCESS! NO TELEMETRY! 
+### NO NETWORK ACCESS! NO TELEMETRY!
 *go suck, microsoft*
 
 ## What envgraph writes
