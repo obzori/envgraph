@@ -254,6 +254,38 @@ test("runScan warns when scanning a very large directory", () => {
 	);
 });
 
+test("runScan refuses huge directories without --force", () => {
+	withProject(
+		{ "src/app.ts": "process.env.PORT;\n" },
+		(root) => {
+			const outcome = runScan([], root, { directoryEntryLimit: 0 });
+			assert.equal(outcome.exitCode, 1);
+			const err = outcome.stderr.join("\n");
+			assert.match(err, /too large to scan/);
+			assert.match(err, /--force/);
+			assert.match(outcome.stdout.join("\n") || "", /^$/);
+		},
+	);
+});
+
+test("runScan --force scans a huge directory with a warning", () => {
+	withProject(
+		{ "src/app.ts": "process.env.PORT;\n" },
+		(root) => {
+			const notified: string[] = [];
+			const outcome = runScan(["--force"], root, {
+				directoryEntryLimit: 0,
+				notify(line) {
+					notified.push(line);
+				},
+			});
+			assert.equal(outcome.exitCode, 0);
+			assert.ok(notified.some((line) => line.includes("large directory")));
+			assert.match(outcome.stdout.join("\n"), /PORT\s+src\/app\.ts:1/);
+		},
+	);
+});
+
 test("runScan does not warn for normal-sized directories", () => {
 	withProject(
 		{ "src/app.ts": "process.env.PORT;\n" },

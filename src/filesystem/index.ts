@@ -55,6 +55,46 @@ export function discoverSourceFiles(
 }
 
 /**
+ * Cheaply estimate the size of a project tree: counts files and directories
+ * under `root`, skipping {@link EXCLUDED_DIRECTORIES}, stopping as soon as
+ * more than `limit` entries have been seen. Never reads file contents.
+ */
+export function countEntries(
+	root: string,
+	limit: number,
+): { count: number; exceeded: boolean } {
+	let count = 0;
+
+	function walk(dir: string): void {
+		if (count > limit) {
+			return;
+		}
+		let entries;
+		try {
+			entries = readdirSync(dir, { withFileTypes: true });
+		} catch {
+			return;
+		}
+
+		for (const entry of entries) {
+			count++;
+			if (count > limit) {
+				return;
+			}
+			if (entry.isDirectory() && !EXCLUDED_DIRECTORIES.has(entry.name)) {
+				walk(path.join(dir, entry.name));
+				if (count > limit) {
+					return;
+				}
+			}
+		}
+	}
+
+	walk(root);
+	return { count, exceeded: count > limit };
+}
+
+/**
  * Read a `.env` file into a `key → value` map, or return `null` if the file
  * does not exist.
  */

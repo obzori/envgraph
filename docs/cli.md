@@ -36,12 +36,41 @@ Options:
 ## `envgraph scan`
 
 ```bash
-envgraph scan          # scan the current directory
+envgraph scan [--force]
 envgraph scan --help   # or -h: print usage, exit 0
 ```
 
 Scans source files for statically detectable `process.env` accesses.
 Details of discovery and syntax support are in [Scanning](scanning.md).
+
+Options:
+
+| Option | Short | Effect |
+| --- | --- | --- |
+| `--force` | `-f` | Scan even if the directory looks too large (see below). |
+| `--help` | `-h` | Print usage — exit `0`. |
+
+### Large-directory guard
+
+Before reading anything, envgraph counts directory entries (files + folders,
+excluding `node_modules`, `.git`, `dist`, `build`). The count stops early once
+it exceeds 50 000 (`DIRECTORY_ENTRY_LIMIT` in
+`src/cli/commands/scan.ts`), so the check is fast even in huge trees.
+
+- Over the limit **without** `--force`: nothing is scanned; a message is
+  printed to stderr and the exit code is `1`:
+
+  ```text
+  envgraph scan: directory <root> is too large to scan (more than 50000 entries).
+  Run from a project root instead, or pass --force to scan anyway.
+  ```
+
+- Over the limit **with** `--force` (`-f`): a warning is printed first and
+  the scan proceeds:
+
+  ```text
+  ⚠ Scanning a large directory: this may take a while...
+  ```
 
 Output format:
 

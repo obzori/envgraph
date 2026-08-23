@@ -1,6 +1,14 @@
 import type { EnvGraphCommand } from "./types.ts";
 import { scanProject } from "../../core/scanner/scanner.ts";
 import type { ScanOptions } from "../../core/scanner/scanner.ts";
+import { countEntries } from "../../filesystem/index.ts";
+
+/**
+ * A tree with more than this many directory entries (files + folders,
+ * excluding `node_modules`, `.git`, `dist`, `build`) is refused unless
+ * `--force` is passed. The check is cheap and aborts early.
+ */
+export const DIRECTORY_ENTRY_LIMIT = 50_000;
 
 export interface ScanOutcome {
 	readonly exitCode: number;
@@ -27,18 +35,42 @@ export function runScan(
 		 * immediately.
 		 */
 		readonly notify?: (line: string) => void;
+		/** Overrides the too-large-tree entry limit (used by tests). */
+		readonly directoryEntryLimit?: number;
 	},
 ): ScanOutcome {
 	const stdout: string[] = [];
 	const stderr: string[] = [];
 
 	if (args.includes("--help") || args.includes("-h")) {
-		stdout.push("Usage: envgraph scan");
+		stdout.push("Usage: envgraph scan [--force]");
 		stdout.push("Scan the project for environment variables used via process.env.");
 		return { exitCode: 0, stdout, stderr };
 	}
 
 	const { notify, ...scanOptions } = options ?? {};
+
+	// Guard: refuse to scan absurdly large trees unless --force is given. The
+	// check counts directory entries only (no file contents) and stops as soon
+	// as the limit is exceeded, so it returns quickly even in huge trees.
+	const force = args.includes("--force") || args.includes("-f");
+	const size = countEntries(
+		root,
+		options?.directoryEntryLimit ?? DIRECTORY_ENTRY_LIMIT,
+	);
+	if (size.exceeded && !force) {
+		stderr.push(
+			`envgraph scan: directory ${root} is too large to scan (more than ${DIRECTORY_ENTRY_LIMIT} entries).`,
+		);
+		stderr.push(
+			"Run from a project root instead, or pass --force to scan anyway.",
+		);
+		return { exitCode: 1, stdout, stderr };
+	}
+	if (size.exceeded && force && notify) {
+		notify("⚠ Scanning a large directory: this may take a while...");
+	}
+
 	const result = scanProject(root, scanOptions);
 
 	if (result.largeDirectoryNotice !== undefined) {
@@ -95,7 +127,7 @@ export function runScan(
 export const scanCommand: EnvGraphCommand = {
 	name: "scan",
 	description: "Detect process.env usages in the project's source files.",
-	usage: "envgraph scan",
+	usage: "envgraph scan [--force]",
 	run(args: readonly string[]): number {
 		const outcome = runScan(args, process.cwd(), {
 			// Print the large-directory notice live, before parsing starts.

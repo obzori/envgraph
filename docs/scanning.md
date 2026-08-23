@@ -61,9 +61,17 @@ Error messages never include source text. The exit code stays `0`.
 
 ## Large directories
 
-Before reading or parsing anything, `envgraph scan` counts the discovered
-source files. If there are more than 10 000 (`LARGE_DIRECTORY_FILE_THRESHOLD`
-in `src/core/scanner/scanner.ts`), it immediately prints:
+Before reading any source file, `envgraph scan` runs a cheap size check: it
+counts directory entries (files + folders, excluding `node_modules`, `.git`,
+`dist`, `build`) and stops counting as soon as the tree exceeds 50 000
+entries (`DIRECTORY_ENTRY_LIMIT` in `src/cli/commands/scan.ts`).
+
+- Over the limit without `--force`: the scan is **refused** with exit code `1`
+  and a hint to run from a project root or pass `--force`.
+- Over the limit with `--force`: it prints
+  `⚠ Scanning a large directory: this may take a while...` and proceeds.
+- Additionally, if more than 10 000 source files are discovered during the
+  walk, a second notice is printed mid-walk:
 
 ```text
 ⚠ Scanning a large directory: 12345 source files
@@ -76,5 +84,6 @@ The notice goes to stdout before any results; the scan then proceeds as usual.
 
 ```bash
 envgraph scan                 # scan the project in the current directory
-envgraph scan --help          # usage: "Usage: envgraph scan"
+envgraph scan --force         # scan even a very large directory
+envgraph scan --help          # usage: "Usage: envgraph scan [--force]"
 ```
