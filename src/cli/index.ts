@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import chalk from "chalk";
 import { s } from "./style.ts";
 import { commands, envgraphCommand, findCommand } from "./commands/index.ts";
-import { printHelp } from "./commands/help.ts";
+import { printHelp, printCommandHelp } from "./commands/help.ts";
 import { printVersion } from "./commands/version.ts";
 
 /**
@@ -35,6 +35,11 @@ export function run(argv: readonly string[]): number {
 
 	const command = findCommand(first);
 	if (command) {
+		// Every command automatically supports -h/--help with a unified view.
+		if (rest.includes("--help") || rest.includes("-h")) {
+			printCommandHelp(command);
+			return 0;
+		}
 		return command.run(rest);
 	}
 

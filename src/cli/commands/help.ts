@@ -23,3 +23,21 @@ export function printHelp(commands: readonly EnvGraphCommand[]): void {
 	lines.push("");
 	process.stdout.write(lines.join("\n") + "\n");
 }
+
+/**
+ * Render per-command help. Used automatically by the CLI dispatcher when a
+ * command receives `-h` / `--help`, so every command supports it without
+ * implementing it itself.
+ */
+export function printCommandHelp(command: EnvGraphCommand): void {
+	const lines: string[] = [];
+	lines.push(s.brand(command.name) + " — " + command.description);
+	lines.push("");
+	lines.push(s.heading("Usage:"));
+	lines.push(`  ${command.usage}`);
+	lines.push("");
+	lines.push(
+		`Run ${s.brand("envgraph --help")} to see all commands.`,
+	);
+	process.stdout.write(lines.join("\n") + "\n");
+}

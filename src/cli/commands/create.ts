@@ -51,6 +51,7 @@ export function createExample(
 	const positional = args.filter((a) => !a.startsWith("-"));
 
 	if (flags.has("--help") || flags.has("-h")) {
+		// Handled centrally by the CLI dispatcher; kept for direct library use.
 		stdout.push("Usage: envgraph create example [--force] [--dry-run]");
 		stdout.push("Generate a .env.example from the project's .env file.");
 		return { exitCode: 0, stdout, stderr, wrote: false };

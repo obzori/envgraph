@@ -44,6 +44,7 @@ export function runScan(
 	const stderr: string[] = [];
 
 	if (args.includes("--help") || args.includes("-h")) {
+		// Handled centrally by the CLI dispatcher; kept for direct library use.
 		stdout.push("Usage: envgraph scan [--force]");
 		stdout.push("Scan the project for environment variables used via process.env.");
 		return { exitCode: 0, stdout, stderr };
