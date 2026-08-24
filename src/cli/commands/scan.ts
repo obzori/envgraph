@@ -19,24 +19,12 @@ export interface ScanOutcome {
 
 /**
  * Implement `envgraph scan`.
- *
- * Pure w.r.t. process state: scans the given root directory for statically
- * analyzable `process.env` usages and returns the lines to print. The command
- * runner below performs the actual output so this function can be unit-tested
- * without capturing global streams.
  */
 export function runScan(
 	args: readonly string[],
 	root: string,
 	options?: ScanOptions & {
-		/**
-		 * Called for each warning line as soon as it is produced (before the
-		 * scan finishes). When provided, large-directory notices go here
-		 * instead of the collected `stdout` lines so a real terminal sees them
-		 * immediately.
-		 */
 		readonly notify?: (line: string) => void;
-		/** Overrides the too-large-tree entry limit (used by tests). */
 		readonly directoryEntryLimit?: number;
 	},
 ): ScanOutcome {
@@ -52,9 +40,7 @@ export function runScan(
 
 	const { notify, ...scanOptions } = options ?? {};
 
-	// Guard: refuse to scan absurdly large trees unless --force is given. The
-	// check counts directory entries only (no file contents) and stops as soon
-	// as the limit is exceeded, so it returns quickly even in huge trees.
+	// Guard: refuse to scan absurdly large trees unless --force is given.
 	const force = args.includes("--force") || args.includes("-f");
 	const size = countEntries(
 		root,
@@ -109,13 +95,20 @@ export function runScan(
 		...result.variables.map((variable) => variable.name.length),
 	);
 	for (const variable of result.variables) {
+		const sources = new Set(
+			variable.locations
+				.map((location) => location.source)
+				.filter((source): source is NonNullable<typeof source> => source !== undefined),
+		);
+		const sourceTag =
+			sources.size > 0 ? ` ${s.dim(`[${[...sources].join(",")}]`)}` : "";
 		const primary = variable.locations[0];
 		const location =
 			primary !== undefined ? `${primary.file}:${primary.line}` : "";
 		const countSuffix =
 			variable.locations.length > 1 ? ` ×${variable.locations.length}` : "";
 		stdout.push(
-			`${variable.name.padEnd(nameWidth)}  ${location}${countSuffix}`,
+			`${variable.name.padEnd(nameWidth)}  ${location}${sourceTag}${countSuffix}`,
 		);
 	}
 

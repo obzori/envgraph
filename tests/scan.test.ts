@@ -131,11 +131,60 @@ test("scans both JavaScript and TypeScript files", () => {
 	);
 });
 
-test("unsupported destructuring is ignored", () => {
+test("destructuring from process.env is detected", () => {
 	const accesses = findEnvAccesses(
-		"const { PORT, API_KEY } = process.env;\n",
+		[
+			"const { PORT, API_KEY } = process.env;",
+			"const { HOST: hostname, RETRIES = 3 } = process.env;",
+		].join("\n"),
 	);
-	assert.equal(accesses.length, 0);
+	assert.deepEqual(
+		accesses.map((a) => [a.name, a.source]).sort(),
+		[
+			["API_KEY", "process"],
+			["HOST", "process"],
+			["PORT", "process"],
+			["RETRIES", "process"],
+		],
+	);
+});
+
+test("import.meta.env (Vite) is detected in dot and bracket notation", () => {
+	const accesses = findEnvAccesses(
+		'const url = import.meta.env.VITE_API_URL;\nconst key = import.meta.env["VITE_KEY"];\n',
+	);
+	assert.deepEqual(
+		accesses.map((a) => [a.name, a.source]).sort(),
+		[
+			["VITE_API_URL", "vite"],
+			["VITE_KEY", "vite"],
+		],
+	);
+});
+
+test("Bun.env and Deno.env.get are detected", () => {
+	const accesses = findEnvAccesses(
+		[
+			"const port = Bun.env.PORT;",
+			'const token = Bun.env["TOKEN"];',
+			'const home = Deno.env.get("HOME");',
+		].join("\n"),
+	);
+	assert.deepEqual(
+		accesses.map((a) => [a.name, a.source]).sort(),
+		[
+			["HOME", "deno"],
+			["PORT", "bun"],
+			["TOKEN", "bun"],
+		],
+	);
+});
+
+test("rest elements and computed keys in destructuring are skipped", () => {
+	const accesses = findEnvAccesses(
+		"const { A, ...rest } = process.env;\nconst { [key]: B } = process.env;\n",
+	);
+	assert.deepEqual(accesses.map((a) => a.name), ["A"]);
 });
 
 test("dynamic bracket access is ignored (variable and template literal)", () => {

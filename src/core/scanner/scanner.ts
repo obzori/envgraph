@@ -1,14 +1,13 @@
 import { readFileSync } from "node:fs";
 import { discoverEnvFiles, discoverSourceFiles } from "../../filesystem/index.ts";
 import { findEnvAccesses, findEnvLoaders } from "./ast.ts";
-import type { EnvLoader } from "./ast.ts";
+import type { EnvLoader, EnvSource } from "./ast.ts";
 
 /** One recorded usage site of an environment variable. */
 export interface EnvVarLocation {
-	/** Path of the file containing the usage, relative to the scan root. */
 	readonly file: string;
-	/** 1-based line number of the usage. */
 	readonly line: number;
+	readonly source?: EnvSource;
 }
 
 /** An environment variable together with every location it is used in. */
@@ -122,7 +121,13 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 
 		for (const access of accesses) {
 			const locations = byName.get(access.name);
-			const location = { file, line: access.line };
+			const location = {
+				file,
+				line: access.line,
+				...(access.source !== undefined && access.source !== "process"
+					? { source: access.source }
+					: {}),
+			};
 			if (locations) {
 				locations.push(location);
 			} else {

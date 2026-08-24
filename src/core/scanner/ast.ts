@@ -1,25 +1,20 @@
 import ts from "typescript";
 
+/** Runtimes/environments from which a variable read was detected. */
+export type EnvSource = "process" | "vite" | "bun" | "deno";
+
 export interface EnvAccess {
 	readonly name: string;
 	readonly line: number;
+	readonly source?: EnvSource;
 }
 
 /** Kinds of statically-recognized environment loading mechanisms. */
 export type EnvLoaderKind = "dotenv" | "node-load-env-file";
 
-/**
- * One detected environment-loading call site, e.g. `dotenv.config()` or
- * `process.loadEnvFile(".env")`. Never contains values read from any file.
- */
 export interface EnvLoader {
 	readonly kind: EnvLoaderKind;
 	readonly line: number;
-	/**
-	 * Static `.env` path passed to the loader, when it was a plain string
-	 * literal (e.g. `dotenv.config({ path: ".env.local" })`). Absent when the
-	 * loader uses its default file or a dynamic path.
-	 */
 	readonly envFile?: string;
 }
 
@@ -37,6 +32,30 @@ function isProcessEnv(node: ts.Expression): boolean {
 
 function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
 	return sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+}
+
+function envObjectSource(node: ts.Expression): EnvSource | undefined {
+	if (isProcessEnv(node)) {
+		return "process";
+	}
+	// import.meta.env
+	if (
+		ts.isPropertyAccessExpression(node) &&
+		ts.isMetaProperty(node.expression) &&
+		node.name.text === "env"
+	) {
+		return "vite";
+	}
+	// Bun.env
+	if (
+		ts.isPropertyAccessExpression(node) &&
+		ts.isIdentifier(node.expression) &&
+		node.expression.text === "Bun" &&
+		node.name.text === "env"
+	) {
+		return "bun";
+	}
+	return undefined;
 }
 
 /** Extract a static `path: "..."` string from a `dotenv.config({...})` argument. */
@@ -60,13 +79,7 @@ function configPathArgument(
 	return undefined;
 }
 
-/**
- * Collect the local identifiers statically bound to the npm `dotenv` package,
- * so later `<binding>.config()` calls can be attributed to it.
- *
- * Only bare package specifiers count: `"dotenv"` resolves to the npm package,
- * while `"./dotenv"` is a local module and never binds here.
- */
+
 function collectDotenvBindingNames(
 	sourceFile: ts.SourceFile,
 	bindings: Set<string>,
@@ -111,11 +124,6 @@ function collectDotenvBindingNames(
 	});
 }
 
-/**
- * Collect locally-declared names that shadow the npm `dotenv` package
- * (variables, parameters). A bare `dotenv.config()` call is attributed to the
- * npm package unless such a local declaration exists in the same file.
- */
 function collectLocalShadowNames(
 	sourceFile: ts.SourceFile,
 	shadows: Set<string>,
@@ -152,11 +160,6 @@ function collectLocalShadowNames(
 	});
 }
 
-/**
- * True when `callee` is `<dotenv>.config` where `<dotenv>` is either an
- * identifier bound to the npm dotenv package or a direct
- * `require("dotenv")` call.
- */
 function isDotenvConfigCallee(
 	callee: ts.Expression,
 	dotenvNames: ReadonlySet<string>,
@@ -261,7 +264,9 @@ export function findEnvLoaders(source: string): EnvLoader[] {
 }
 
 /**
- * Extract every statically-analyzable `process.env` access from source code.
+ * Extract every statically-analyzable environment variable access from source
+ * code: `process.env` (dot/bracket/destructuring), `import.meta.env` (Vite),
+ * `Bun.env` and `Deno.env.get("...")`.
  */
 export function findEnvAccesses(source: string): EnvAccess[] {
 	const sourceFile = ts.createSourceFile(
@@ -275,28 +280,96 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 	const accesses: EnvAccess[] = [];
 
 	const visit = (node: ts.Node): void => {
-		// Dot notation: `process.env.NAME`
-		if (
-			ts.isPropertyAccessExpression(node) &&
-			isProcessEnv(node.expression)
-		) {
-			accesses.push({
-				name: node.name.text,
-				line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
-			});
+		// Dot notation on a known env object: `process.env.NAME`,
+		// `import.meta.env.NAME`, `Bun.env.NAME`.
+		if (ts.isPropertyAccessExpression(node)) {
+			const source = envObjectSource(node.expression);
+			if (source !== undefined) {
+				accesses.push({
+					name: node.name.text,
+					line: lineOf(sourceFile, node),
+					source,
+				});
+			}
 		}
 
-		// Bracket notation: `process.env["NAME"]` / `process.env['NAME']`
+		// Bracket notation with a static string: `process.env["NAME"]`,
+		// `import.meta.env['NAME']`, `Bun.env["NAME"]`.
 		if (
 			ts.isElementAccessExpression(node) &&
-			isProcessEnv(node.expression) &&
 			node.argumentExpression !== undefined &&
 			ts.isStringLiteral(node.argumentExpression)
 		) {
-			accesses.push({
-				name: node.argumentExpression.text,
-				line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
-			});
+			const source =
+				node.expression !== undefined
+					? envObjectSource(node.expression)
+					: undefined;
+			if (source !== undefined) {
+				accesses.push({
+					name: node.argumentExpression.text,
+					line: lineOf(sourceFile, node),
+					source,
+				});
+			}
+		}
+
+		// Destructuring: `const { A, B: local = "x", ...rest } = process.env;`
+		// (also works with `import.meta.env` and `Bun.env`). Rest elements and
+		// computed/dynamic keys are skipped.
+		if (
+			ts.isVariableDeclaration(node) &&
+			ts.isObjectBindingPattern(node.name) &&
+			node.initializer !== undefined
+		) {
+			const source = envObjectSource(node.initializer);
+			if (source !== undefined) {
+				for (const element of node.name.elements) {
+					if (!ts.isBindingElement(element) || element.dotDotDotToken) {
+						continue;
+					}
+					// Env var name: explicit property name wins (`{ PORT: port }`),
+					// otherwise the bound identifier itself. Only identifiers are
+					// statically resolvable — computed names (`{ [key]: v }`) and
+					// rest elements are ignored.
+					let name: string | undefined;
+					if (element.propertyName) {
+						if (ts.isIdentifier(element.propertyName)) {
+							name = element.propertyName.text;
+						}
+					} else if (ts.isIdentifier(element.name)) {
+						name = element.name.text;
+					}
+					if (name !== undefined) {
+						accesses.push({
+							name,
+							line: lineOf(sourceFile, element),
+							source,
+						});
+					}
+				}
+			}
+		}
+
+		// Deno: `Deno.env.get("NAME")` (also `.get(key)` only with literals).
+		if (ts.isCallExpression(node)) {
+			const callee = node.expression;
+			if (
+				ts.isPropertyAccessExpression(callee) &&
+				callee.name.text === "get" &&
+				ts.isPropertyAccessExpression(callee.expression) &&
+				ts.isIdentifier(callee.expression.expression) &&
+				callee.expression.expression.text === "Deno" &&
+				callee.expression.name.text === "env"
+			) {
+				const first = node.arguments[0];
+				if (first !== undefined && ts.isStringLiteral(first)) {
+					accesses.push({
+						name: first.text,
+						line: lineOf(sourceFile, node),
+						source: "deno",
+					});
+				}
+			}
 		}
 
 		node.forEachChild(visit);
