@@ -4,6 +4,8 @@ import type { EnvGraphConfig } from "../../config/index.ts";
 
 export interface BuildExampleOptions {
 	readonly keepComments?: boolean;
+	// full override: wins even over sensitive-name sanitization
+	readonly defaults?: Readonly<Record<string, string>>;
 }
 
 
@@ -12,6 +14,7 @@ export function buildExampleContent(
 	options: BuildExampleOptions = {},
 ): string {
 	const keepComments = options.keepComments ?? true;
+	const defaults = options.defaults ?? {};
 	const lines = parseEnvFile(envContent);
 	const out: string[] = [];
 
@@ -29,6 +32,11 @@ export function buildExampleContent(
 				out.push(line.text);
 				break;
 			case "assignment": {
+				if (line.name in defaults) {
+					// explicit user intent beats the sanitizer
+					out.push(`${line.name}=${defaults[line.name]}`);
+					break;
+				}
 				out.push(
 					isSensitiveName(line.name)
 						? `${line.name}=${SENSITIZED_VALUE}`
@@ -42,13 +50,14 @@ export function buildExampleContent(
 	return out.join("\n") + "\n";
 }
 
-/** Convenience overload taking the project's effective config section. */
+// convenience overload taking the project's effective config section
 export function buildExampleContentFromConfig(
 	envContent: string,
 	config: Pick<EnvGraphConfig, "example">,
 ): string {
 	return buildExampleContent(envContent, {
 		keepComments: config.example.keepComments,
+		defaults: config.example.defaults,
 	});
 }
 

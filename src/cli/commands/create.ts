@@ -92,8 +92,10 @@ export function createExample(
 	}
 
 	const envContent = readFileSync(envPath, "utf8");
+	const { keepComments, defaults } = getConfig().example;
 	const exampleContent = buildExampleContent(envContent, {
-		keepComments: getConfig().example.keepComments,
+		keepComments,
+		defaults,
 	});
 
 	if (opts.dryRun) {

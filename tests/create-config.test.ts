@@ -197,6 +197,38 @@ test("buildExampleContent drops comments when keepComments is false", () => {
 	);
 });
 
+test("example.defaults fully overrides values, including sensitive keys", () => {
+	const content = buildExampleContent(
+		"PORT=3000\nDISCORD_TOKEN=super-secret\nDEBUG=true\n",
+		{
+			defaults: {
+				DISCORD_TOKEN: "enter_here_your_discord_token",
+				PORT: "8080",
+			},
+		},
+	);
+	assert.equal(
+		content,
+		"PORT=8080\n" +
+			"DISCORD_TOKEN=enter_here_your_discord_token\n" +
+			"DEBUG=true\n",
+	);
+});
+
+test("keys without a default keep the normal sanitization rules", () => {
+	const content = buildExampleContent("API_KEY=abc123\n", {
+		defaults: { UNRELATED: "x" },
+	});
+	assert.equal(content, "API_KEY=\n");
+});
+
+test("empty defaults object behaves like no defaults", () => {
+	assert.equal(
+		buildExampleContent("PORT=3000\nAPI_KEY=abc123\n", { defaults: {} }),
+		buildExampleContent("PORT=3000\nAPI_KEY=abc123\n"),
+	);
+});
+
 test("keepComments: false from config file reaches create example", async () => {
 	const cwd = makeProject({
 		"envgraph.config.js":
