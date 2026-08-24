@@ -1,15 +1,17 @@
 import { parseEnvFile } from "./parser.ts";
 import { isSensitiveName, SENSITIZED_VALUE } from "./sanitizer.ts";
+import type { EnvGraphConfig } from "../../config/index.ts";
 
-/**
- * Build the sanitized `.env.example` content from raw `.env` contents.
- *
- * Rules:
- *  - Sensitive variables are written with an empty value.
- *  - Safe values are preserved verbatim from the source (including quotes).
- *  - Comments, blank lines, and unknown raw lines are preserved in order.
- */
-export function buildExampleContent(envContent: string): string {
+export interface BuildExampleOptions {
+	readonly keepComments?: boolean;
+}
+
+
+export function buildExampleContent(
+	envContent: string,
+	options: BuildExampleOptions = {},
+): string {
+	const keepComments = options.keepComments ?? true;
 	const lines = parseEnvFile(envContent);
 	const out: string[] = [];
 
@@ -19,7 +21,9 @@ export function buildExampleContent(envContent: string): string {
 				out.push("");
 				break;
 			case "comment":
-				out.push(line.raw);
+				if (keepComments) {
+					out.push(line.raw);
+				}
 				break;
 			case "raw":
 				out.push(line.text);
@@ -36,6 +40,16 @@ export function buildExampleContent(envContent: string): string {
 	}
 
 	return out.join("\n") + "\n";
+}
+
+/** Convenience overload taking the project's effective config section. */
+export function buildExampleContentFromConfig(
+	envContent: string,
+	config: Pick<EnvGraphConfig, "example">,
+): string {
+	return buildExampleContent(envContent, {
+		keepComments: config.example.keepComments,
+	});
 }
 
 export type { EnvLine } from "./parser.ts";

@@ -14,6 +14,7 @@ import {
 	detectProjectLanguage,
 	buildConfigTemplate,
 } from "../src/cli/commands/create.ts";
+import { buildExampleContent } from "../src/core/env/generator.ts";
 import { findConfigPath, loadConfig, getConfig } from "../src/config/index.ts";
 
 type CreateOpts = {
@@ -164,6 +165,39 @@ test("loadConfig warns on broken config but continues with defaults", async () =
 		assert.equal(warnings.length, 1);
 		assert.match(warnings[0] ?? "", /failed to load/);
 		assert.equal(config.example.keepComments, true);
+	} finally {
+		rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
+const ENV_WITH_COMMENTS =
+	"# app settings\nPORT=3000\n\n# debug flag\nDEBUG=true\n";
+
+test("buildExampleContent keeps comments by default", () => {
+	assert.equal(
+		buildExampleContent(ENV_WITH_COMMENTS),
+		"# app settings\nPORT=3000\n\n# debug flag\nDEBUG=true\n",
+	);
+});
+
+test("buildExampleContent drops comments when keepComments is false", () => {
+	assert.equal(
+		buildExampleContent(ENV_WITH_COMMENTS, { keepComments: false }),
+		"PORT=3000\n\nDEBUG=true\n",
+	);
+});
+
+test("keepComments: false from config file reaches create example", async () => {
+	const cwd = makeProject({
+		"envgraph.config.js":
+			"export default { example: { keepComments: false } };\n",
+	});
+	try {
+		const config = await loadConfig(cwd);
+		const content = buildExampleContent(ENV_WITH_COMMENTS, {
+			keepComments: config.example.keepComments,
+		});
+		assert.equal(content, "PORT=3000\n\nDEBUG=true\n");
 	} finally {
 		rmSync(cwd, { recursive: true, force: true });
 	}

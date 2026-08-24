@@ -4,6 +4,7 @@ import type { EnvGraphCommand } from "./types.ts";
 import { s, stylizeLine } from "../style.ts";
 import { buildExampleContent } from "../../core/env/generator.ts";
 import { confirmSync } from "../prompt.ts";
+import { getConfig } from "../../config/index.ts";
 
 /**
  * Warning printed after every successful write of `.env.example`. It is
@@ -91,7 +92,9 @@ export function createExample(
 	}
 
 	const envContent = readFileSync(envPath, "utf8");
-	const exampleContent = buildExampleContent(envContent);
+	const exampleContent = buildExampleContent(envContent, {
+		keepComments: getConfig().example.keepComments,
+	});
 
 	if (opts.dryRun) {
 		stdout.push("Dry run: .env.example would contain:");
