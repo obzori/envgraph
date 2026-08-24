@@ -177,6 +177,7 @@ Full details in the [CLI Reference](docs/cli.md).
 - [Security](docs/security.md)
 - [Limitations](docs/limitations.md)
 - [Development](docs/development.md)
+- **Документация на русском:** [docs/russian/README.md](docs/russian/README.md)
 
 ## Development
 
