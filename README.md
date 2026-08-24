@@ -64,6 +64,11 @@ your code.
 - **`.env` file discovery** — `.env`, `.env.local`, `.env.production`, etc.
 - **Create example** — turns an existing `.env` into a commit-friendly
   `.env.example`, blanking values whose names look like secrets (heuristic).
+  Configurable via `envgraph.config`: keep comments and set default values
+  for specific keys (full override, even for sensitive-looking names).
+- **Project configuration** — `envgraph.config.{js,mjs,cjs,ts,mts,json}` is
+  discovered automatically in the project root; run from any subfolder and
+  the config is still found.
 - **Safe static analysis** — exact locations only; `.env` values never appear
   in output; no code execution, no network access.
 
@@ -131,6 +136,25 @@ Always review the generated `.env.example` before committing it — the
 sanitizer is a name-based heuristic, not a guarantee. See
 [Security](docs/security.md).
 
+```bash
+# 3. Scaffold a config file (envgraph.config.ts for TS projects, .js otherwise)
+npx envgraph create config
+```
+
+Edit it to customize `.env.example` generation, e.g.:
+
+```js
+export default {
+  example: {
+    keepComments: true,
+    defaults: { DISCORD_TOKEN: "enter_here_your_discord_token" },
+  },
+};
+```
+
+The config is picked up automatically on every run; when you launch envgraph
+from a subfolder, it is found in the project root and a hint is printed.
+
 ## CLI Overview
 
 | Command | Description |
@@ -138,6 +162,7 @@ sanitizer is a name-based heuristic, not a guarantee. See
 | `envgraph` | Check that envgraph is installed and working. |
 | `envgraph scan` | Detect `process.env` usages in the project's source files. |
 | `envgraph create example [--force] [--dry-run]` | Generate `.env.example` from `.env`. |
+| `envgraph create config [--force] [--dry-run] [--ts\\|--js]` | Generate an `envgraph.config.ts/js` scaffold. |
 | `envgraph help` | Show usage information. |
 | `envgraph version` | Print the installed version. |
 

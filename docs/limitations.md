@@ -1,11 +1,14 @@
 ﻿# Limitations
 
-What envgraph does today, what it does not, and what is only a placeholder.
+What envgraph does today, what it does not, and what is planned.
 
 ## Implemented
 
-- CLI with commands: `scan`, `create example`, `help`, `version`, and the
-  default `envgraph` check.
+- CLI with commands: `scan`, `create example`, `create config`, `help`,
+  `version`, and the default `envgraph` check.
+- Project configuration via `envgraph.config.{ts,mts,js,mjs,cjs,json}`,
+  discovered automatically (nearest wins) with upward search that stops at
+  the project root; a broken config warns and falls back to defaults.
 - AST-based detection of `process.env.NAME` and `process.env["NAME"]`
   (string literal) in `.js` / `.jsx` / `.ts` / `.tsx` files.
 - Detection of environment loading: `import "dotenv/config"`,
@@ -16,7 +19,9 @@ What envgraph does today, what it does not, and what is only a placeholder.
   stderr.
 - `.env.example` generation from `.env` with name-based secret blanking,
   order/formatting preservation, `--force`, `--dry-run`, and a TTY-gated
-  overwrite prompt.
+  overwrite prompt. Configurable via the config file:
+  `example.keepComments` and `example.defaults` (full per-key override).
+- A dim stderr hint when running `scan` from a project subfolder.
 
 ## Not supported today
 
@@ -41,24 +46,17 @@ Scanning:
 - The sanitizer is name-based and cannot detect secrets under benign names.
 - Only `.env` в†’ `.env.example`; no other file formats.
 
-## Placeholders / future ideas (not yet functional)
+## Not yet functional / future ideas
 
-The following exist in the codebase as scaffolding but are **not** usable
-behavior. Do not rely on them:
+Do not rely on the following:
 
-- **Configuration files** (`envgraph.config.{js,ts,json}`) вЂ” `loadConfig`
-  returns built-in defaults only; there is no config-file discovery or
-  merging.
-- **Output formats** — `json`, `table`, and `mermaid` are implemented in
-  `src/output/index.ts` and available via
-  `envgraph scan --format json|table|mermaid`, with optional file export via
-  `--output <file>` / `-o <file>`.
-- **Programmatic analysis API** вЂ” `analyzeProject` and `runEnvGraph` return an
+- **`include` / `exclude` / `outputFormat` in `envgraph.config`** — declared
+  and loaded, but the scanner does not apply them yet.
+- **Programmatic analysis API** — `analyzeProject` and `runEnvGraph` return an
   empty result; the working implementation is `scanProject` in
   `src/core/scanner/`. The public exports from `envgraph` are real but the
   orchestration layer is not implemented yet.
-- **Column numbers** вЂ” declared in the analysis types but not produced by the
+- **Column numbers** — declared in the analysis types but not produced by the
   scanner.
 
-There is no config file, no JSON output flag, no watch mode, and no plugin
-system at this time.
+There is no watch mode and no plugin system at this time.

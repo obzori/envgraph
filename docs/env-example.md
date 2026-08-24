@@ -12,6 +12,32 @@ envgraph create example [--force] [--dry-run]
 Both `.env` and the generated `.env.example` live in the current working
 directory.
 
+## Config overrides
+
+Generation can be customized via the project's
+`envgraph.config.{js,mjs,cjs,ts,mts,json}` (`example` section):
+
+```js
+export default {
+  example: {
+    // keep comment lines from .env (default: true)
+    keepComments: false,
+    // write these values instead of whatever .env contains;
+    // full override — wins even over sensitive-name sanitization
+    defaults: {
+      DISCORD_TOKEN: "enter_here_your_discord_token",
+      NODE_ENV: "development",
+    },
+  },
+};
+```
+
+Priority per assignment:
+
+1. key present in `defaults` → value from `defaults`;
+2. otherwise a sensitive-looking name → empty value;
+3. otherwise the original `.env` value.
+
 ## How `.env` is parsed
 
 The file is parsed line by line, in order:

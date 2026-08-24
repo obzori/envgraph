@@ -30,13 +30,21 @@ Recognized keys (all optional, merged over defaults):
 export default {
   example: {
     keepComments: true,              // keep .env comments in .env.example
-    defaults: { NODE_ENV: "development" }, // default values for keys
+    defaults: {                      // full per-key override of the value
+      DISCORD_TOKEN: "enter_here_your_discord_token",
+    },
   },
 };
 ```
 
+`defaults` wins even over sensitive-name sanitization: if a key is listed
+there, its value from `defaults` is written verbatim.
+
 A config file that fails to load produces a warning on stderr and the run
-continues with the default configuration.
+continues with the default configuration. The search walks upward from the
+current directory and stops at the project root (`.git`, `package.json`, …),
+so running from a subfolder still finds it; envgraph prints a hint when the
+loaded config lies above the working directory.
 
 ## `envgraph scan`
 

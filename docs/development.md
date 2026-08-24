@@ -12,11 +12,11 @@ src/
 ├── core/
 │   ├── scanner/        # source-file scanning: ast.ts, scanner.ts
 │   └── env/            # .env parser, secret sanitizer, example generator
-├── analysis/           # programmatic analysis API (placeholder, see limitations.md)
-├── config/             # run configuration types (placeholder defaults)
-├── output/             # output formatting (JSON only in practice)
+├── analysis/           # programmatic analysis API (scaffold, see limitations.md)
+├── config/             # envgraph.config discovery, loading and merging
+├── output/             # output formatting (json, table, mermaid)
 └── filesystem/         # file discovery and .env reading helpers
-tests/                  # node:test suites (cli.test.ts, create.test.ts, scan.test.ts)
+tests/                  # node:test suites (cli, create, create-config, scan, …)
 dist/                   # build output (published to npm)
 ```
 
