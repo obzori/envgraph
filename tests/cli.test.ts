@@ -8,7 +8,9 @@ import { run } from "../src/cli/index.ts";
  */
 
 /** Run a function while capturing anything written to stdout. */
-function captureStdout(fn: () => number): { code: number; output: string } {
+async function captureStdout(
+	fn: () => Promise<number>,
+): Promise<{ code: number; output: string }> {
 	const chunks: string[] = [];
 	const original = process.stdout.write.bind(process.stdout);
 
@@ -20,22 +22,22 @@ function captureStdout(fn: () => number): { code: number; output: string } {
 	};
 
 	try {
-		const code = fn();
+		const code = await fn();
 		return { code, output: chunks.join("") };
 	} finally {
 		process.stdout.write = original;
 	}
 }
 
-test("--help prints usage and exits 0", () => {
-	const { code, output } = captureStdout(() => run(["node", "envgraph", "--help"]));
+test("--help prints usage and exits 0", async () => {
+	const { code, output } = await captureStdout(() => run(["node", "envgraph", "--help"]));
 	assert.equal(code, 0);
 	assert.match(output, /Usage:/);
 	assert.match(output, /envgraph/);
 });
 
-test("unknown commands exit 1", () => {
-	const { code } = captureStdout(() =>
+test("unknown commands exit 1", async () => {
+	const { code } = await captureStdout(() =>
 		run(["node", "envgraph", "does-not-exist"]),
 	);
 	assert.equal(code, 1);
