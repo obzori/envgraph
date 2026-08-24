@@ -1,18 +1,41 @@
 <div align="center">
-  <img src="images/logo.svg" width="546" alt="envgraph logo" />
+  <img src="images/logo.svg" width="520" alt="envgraph" />
 
-  [![npm version](https://img.shields.io/npm/v/envgraph.svg)](https://www.npmjs.com/package/envgraph)
-  [![npm downloads](https://img.shields.io/npm/dm/envgraph.svg)](https://www.npmjs.com/package/envgraph)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  <p>
+    <strong>Map your environment variables.</strong><br>
+    <sub>Static analysis for JavaScript & TypeScript projects.</sub>
+  </p>
 
-  [![Node.js >= 23.6](https://img.shields.io/node/v/envgraph.svg)](https://www.npmjs.com/package/envgraph)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  <p>
+    <a href="https://www.npmjs.com/package/envgraph">
+      <img src="https://img.shields.io/npm/v/envgraph?style=flat-square&label=npm&color=CB3837" alt="npm version" />
+    </a>
+    <a href="https://www.npmjs.com/package/envgraph">
+      <img src="https://img.shields.io/npm/dm/envgraph?style=flat-square&label=downloads&color=CB3837" alt="npm downloads" />
+    </a>
+    <a href="https://github.com/obzori/envgraph">
+      <img src="https://img.shields.io/github/stars/obzori/envgraph?style=flat-square&label=stars&color=f5c542" alt="GitHub stars" />
+    </a>
+    <a href="https://github.com/obzori/envgraph/issues">
+      <img src="https://img.shields.io/github/issues/obzori/envgraph?style=flat-square&label=issues&color=8b5cf6" alt="GitHub issues" />
+    </a>
+    <a href="https://opensource.org/licenses/MIT">
+      <img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="MIT License" />
+    </a>
+  </p>
 
-  [![GitHub repository](https://img.shields.io/badge/GitHub-obzori%2Fenvgraph-181717?logo=github)](https://github.com/obzori/envgraph)
-  [![GitHub issues](https://img.shields.io/github/issues/obzori/envgraph.svg)](https://github.com/obzori/envgraph/issues)
-  [![GitHub last commit](https://img.shields.io/github/last-commit/obzori/envgraph.svg)](https://github.com/obzori/envgraph/commits)
+  <p>
+    <img src="https://img.shields.io/node/v/envgraph?style=flat-square&label=Node.js&color=5FA04E" alt="Node.js >= 23.6" />
+    <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5.x" />
+    <img src="https://img.shields.io/badge/zero_dependencies-✓-18181b?style=flat-square" alt="Zero dependencies" />
+  </p>
+  <sub>
+    Find usages · detect loaders · discover <code>.env</code> files · generate <code>.env.example</code>
+  </sub>
+  
+  <br>
 </div>
-
+<br>
 **envgraph** is a static analyzer that maps environment variables to the
 files that use them in JavaScript and TypeScript projects — and analyzes how
 those variables are loaded.
