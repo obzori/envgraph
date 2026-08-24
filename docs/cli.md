@@ -36,7 +36,7 @@ Options:
 ## `envgraph scan`
 
 ```bash
-envgraph scan [--force]
+envgraph scan [--force] [--format json|table|mermaid] [-o <file>]
 envgraph scan --help   # or -h: print usage, exit 0
 ```
 
@@ -50,6 +50,26 @@ Options:
 | --- | --- | --- |
 | `--force` | `-f` | Scan even if the directory looks too large (see below). |
 | `--help` | `-h` | Print usage — exit `0`. |
+| `--format <fmt>` | `-F` | Output format: `json`, `table`, or `mermaid`. Also accepted as `--format=<fmt>`. |
+| `--output <file>` | `-o` | Write the formatted output to a file instead of stdout (parent directories are created). Also accepted as `--output=<file>`. |
+
+### Output formats
+
+- **default** (no `--format`): human-readable, colorized terminal report.
+- **`json`**: machine-readable object with `variables`, `loaders`,
+  `envFiles`, and `errors`.
+- **`table`**: plain-text aligned table (no ANSI colors).
+- **`mermaid`**: a `flowchart LR` graph where `.env*` files feed loaders
+  and variables link to their usage sites; paste directly into Mermaid-enabled
+  Markdown.
+
+Examples:
+
+```bash
+envgraph scan --format json > report.json
+envgraph scan --format mermaid -o docs/env-graph.mmd
+```
+
 
 ### Large-directory guard
 
