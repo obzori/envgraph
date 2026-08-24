@@ -1,8 +1,12 @@
 import type { EnvGraphCommand } from "./types.ts";
 import { s, stylizeLine } from "../style.ts";
 import { scanProject } from "../../core/scanner/scanner.ts";
-import type { ScanOptions } from "../../core/scanner/scanner.ts";
+import type { ScanOptions, ScanResult } from "../../core/scanner/scanner.ts";
 import { countEntries } from "../../filesystem/index.ts";
+import { formatOutput } from "../../output/index.ts";
+import type { OutputFormat } from "../../output/index.ts";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 /**
  * A tree with more than this many directory entries (files + folders,
@@ -15,6 +19,86 @@ export interface ScanOutcome {
 	readonly exitCode: number;
 	readonly stdout: readonly string[];
 	readonly stderr: readonly string[];
+	/**
+	 * True when stdout carries machine-readable/formatted content
+	 * (`--format` was given) that must be printed verbatim, without
+	 * CLI styling.
+	 */
+	readonly raw?: boolean;
+}
+
+const FORMATS: readonly OutputFormat[] = ["json", "table", "mermaid"];
+
+interface ScanFlags {
+	readonly format?: OutputFormat;
+	readonly output?: string;
+}
+
+/** Parse `--format <fmt>` / `--format=<fmt>` and `-o/--output <file>`. */
+export function parseScanFlags(args: readonly string[]): {
+	flags: ScanFlags;
+	error?: string;
+} {
+	const flags: { format?: OutputFormat; output?: string } = {};
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (arg === undefined) {
+			continue;
+		}
+		if (arg === "--format" || arg === "-F") {
+			const value = args[i + 1];
+			if (value === undefined || value.startsWith("--")) {
+				return { flags, error: "the --format flag requires a value." };
+			}
+			if (!FORMATS.includes(value as OutputFormat)) {
+				return {
+					flags,
+					error: `unknown format "${value}". Supported formats: ${FORMATS.join(", ")}.`,
+				};
+			}
+			flags.format = value as OutputFormat;
+			i++;
+			continue;
+		}
+		if (arg.startsWith("--format=")) {
+			const value = arg.slice("--format=".length);
+			if (!FORMATS.includes(value as OutputFormat)) {
+				return {
+					flags,
+					error: `unknown format "${value}". Supported formats: ${FORMATS.join(", ")}.`,
+				};
+			}
+			flags.format = value as OutputFormat;
+			continue;
+		}
+		if (arg === "--output" || arg === "-o") {
+			const value = args[i + 1];
+			if (value === undefined || value.startsWith("--")) {
+				return { flags, error: "the --output flag requires a file path." };
+			}
+			flags.output = value;
+			i++;
+			continue;
+		}
+		if (arg.startsWith("--output=")) {
+			flags.output = arg.slice("--output=".length);
+			continue;
+		}
+	}
+	return { flags };
+}
+
+/**
+ * Drop the transient large-directory notice from a scan result: it is a
+ * CLI-time warning, not part of the analysis data worth serializing.
+ */
+function stripNotice(result: ScanResult): ScanResult {
+	if (result.largeDirectoryNotice === undefined) {
+		return result;
+	}
+	const { largeDirectoryNotice: _ignored, ...rest } = result;
+	void _ignored;
+	return rest;
 }
 
 /**
@@ -33,11 +117,19 @@ export function runScan(
 
 	if (args.includes("--help") || args.includes("-h")) {
 		// Handled centrally by the CLI dispatcher; kept for direct library use.
-		stdout.push("Usage: envgraph scan [--force]");
+		stdout.push(
+			"Usage: envgraph scan [--force] [--format json|table|mermaid] [-o <file>]",
+		);
 		stdout.push("Scan the project for environment variables used via process.env.");
 		return { exitCode: 0, stdout, stderr };
 	}
 
+	const { flags, error } = parseScanFlags(args);
+	if (error !== undefined) {
+		stderr.push(`envgraph scan: ${error}`);
+		return { exitCode: 1, stdout, stderr };
+	}
+	const { format, output } = flags;
 	const { notify, ...scanOptions } = options ?? {};
 
 	// Guard: refuse to scan absurdly large trees unless --force is given.
@@ -74,6 +166,30 @@ export function runScan(
 			stdout.push(...lines);
 			stdout.push("");
 		}
+	}
+
+	if (format !== undefined) {
+		const text = formatOutput(stripNotice(result), { format });
+		if (output !== undefined) {
+			try {
+				mkdirSync(dirname(output), { recursive: true });
+				writeFileSync(output, `${text}\n`, "utf8");
+			} catch (writeError) {
+				stderr.push(
+					`envgraph scan: could not write ${output}: ${writeError instanceof Error ? writeError.message : String(writeError)}`,
+				);
+				return { exitCode: 1, stdout, stderr };
+			}
+			stdout.push(`✓ Written to ${output}`);
+		} else {
+			stdout.push(text);
+		}
+		for (const scanError of result.errors) {
+			stderr.push(
+				`envgraph scan: could not parse ${scanError.file}: ${scanError.message}`,
+			);
+		}
+		return { exitCode: 0, stdout, stderr, raw: output === undefined };
 	}
 
 	if (result.variables.length === 0 && result.loaders.length === 0) {
@@ -147,7 +263,8 @@ export function runScan(
 export const scanCommand: EnvGraphCommand = {
 	name: "scan",
 	description: "Detect process.env usages in the project's source files.",
-	usage: "envgraph scan [--force]",
+	usage:
+		"envgraph scan [--force] [--format json|table|mermaid] [-o <file>]",
 	run(args: readonly string[]): number {
 		const outcome = runScan(args, process.cwd(), {
 			// Print the large-directory notice live, before parsing starts.
@@ -157,7 +274,9 @@ export const scanCommand: EnvGraphCommand = {
 		});
 
 		for (const line of outcome.stdout) {
-			process.stdout.write(`${stylizeLine(line)}\n`);
+			process.stdout.write(
+				`${outcome.raw ? line : stylizeLine(line)}\n`,
+			);
 		}
 		for (const line of outcome.stderr) {
 			process.stderr.write(`${s.error(line)}\n`);
