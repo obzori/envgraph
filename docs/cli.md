@@ -15,6 +15,32 @@ success; anything else is an error.
 
 General help output:
 
+### Configuration file
+
+On every run envgraph looks for a config file in the current directory and
+loads it automatically:
+
+`envgraph.config.ts`, `envgraph.config.mts`, `envgraph.config.js`,
+`envgraph.config.mjs`, `envgraph.config.cjs`, or `envgraph.config.json`
+(first match wins). Generate one with `envgraph create config`.
+
+Recognized keys (all optional, merged over defaults):
+
+```js
+export default {
+  example: {
+    keepComments: true,              // keep .env comments in .env.example
+    defaults: { NODE_ENV: "development" }, // default values for keys
+  },
+};
+```
+
+A config file that fails to load produces a warning on stderr and the run
+continues with the default configuration.
+
+## `envgraph scan`
+
+
 ```text
 envgraph — map environment variables to the files that use them.
 
@@ -163,7 +189,7 @@ Options:
 Behavior:
 
 - Missing or wrong generator name (anything other than `example`):
-  `envgraph create: unknown or missing generator. Available: example` — exit `1`.
+  `envgraph create: unknown or missing generator. Available: example, config` — exit `1`.
 - No `.env` in the current directory:
   `envgraph: .env not found in <cwd>.` — exit `1`.
 - `.env.example` exists:
@@ -173,6 +199,31 @@ Behavior:
   - Non-interactive (no TTY): refuses to overwrite — exit `1`.
 - Success: writes the file and prints `✓ Created .env.example` plus the
   review warning — exit `0`.
+
+## `envgraph create config`
+
+```bash
+envgraph create config [--force] [--dry-run] [--ts|--js]
+```
+
+Generates an `envgraph.config.ts` (TypeScript projects) or `envgraph.config.js`
+(JavaScript projects) in the current directory with a commented starter
+template. The project language is detected from `tsconfig.json` or root
+`.ts`/`.mts` files; `--ts` / `--js` override detection.
+
+Options:
+
+| Option | Short | Effect |
+| --- | --- | --- |
+| `--force` | `-f` | Overwrite an existing config file without asking. |
+| `--dry-run` | `-d` | Print the generated content without writing any file. |
+| `--ts` / `--js` | | Force the output file type. |
+| `--help` | `-h` | Print usage — exit `0`. |
+
+Behavior mirrors `create example`: without `--force`, an existing config file
+is only overwritten after interactive confirmation (non-interactive runs
+refuse, exit `1`). Success prints `✓ Created <file>` (or `✓ Overwrote`) —
+exit `0`.
 
 ## `envgraph help`
 
