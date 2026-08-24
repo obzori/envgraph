@@ -48,6 +48,26 @@ const CONFIG_CANDIDATES: readonly string[] = [
 
 const PROJECT_MARKERS: readonly string[] = [".git", ".hg", ".svn", "package.json"];
 
+// does this directory look like a project root
+export function isProjectRoot(dir: string): boolean {
+	return PROJECT_MARKERS.some((m) => existsSync(path.join(dir, m)));
+}
+
+// nearest ancestor (or the dir itself) that is a project root
+export function findProjectRoot(startDir: string): string | undefined {
+	let dir = path.resolve(startDir);
+	for (;;) {
+		if (isProjectRoot(dir)) {
+			return dir;
+		}
+		const parent = path.dirname(dir);
+		if (parent === dir) {
+			return undefined;
+		}
+		dir = parent;
+	}
+}
+
 // nearest wins; search stops at the project root (marker dir) or disk root
 export function findConfigPath(startDir: string): string | undefined {
 	let dir = path.resolve(startDir);
@@ -60,11 +80,7 @@ export function findConfigPath(startDir: string): string | undefined {
 			}
 		}
 
-		// marker check comes after the lookup so a config in the project
-		// root itself is still found
-		if (
-			PROJECT_MARKERS.some((m) => existsSync(path.join(dir, m)))
-		) {
+		if (isProjectRoot(dir)) {
 			return undefined;
 		}
 

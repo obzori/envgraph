@@ -7,6 +7,7 @@ import { formatOutput } from "../../output/index.ts";
 import type { OutputFormat } from "../../output/index.ts";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { isProjectRoot, findProjectRoot } from "../../config/index.ts";
 
 /**
  * A tree with more than this many directory entries (files + folders,
@@ -266,7 +267,16 @@ export const scanCommand: EnvGraphCommand = {
 	usage:
 		"envgraph scan [--force] [--format json|table|mermaid] [-o <file>]",
 	run(args: readonly string[]): number {
-		const outcome = runScan(args, process.cwd(), {
+		const cwd = process.cwd();
+
+		// scanning a subfolder gives a partial graph; nudge the user
+		if (!isProjectRoot(cwd) && findProjectRoot(cwd) !== undefined) {
+			process.stderr.write(
+				`${s.dim("envgraph: run from the project root to include the whole graph")}\n`,
+			);
+		}
+
+		const outcome = runScan(args, cwd, {
 			// Print the large-directory notice live, before parsing starts.
 			notify(line) {
 				process.stdout.write(`${s.warning(line)}\n`);

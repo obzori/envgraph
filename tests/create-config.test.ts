@@ -18,8 +18,10 @@ import {
 import { buildExampleContent } from "../src/core/env/generator.ts";
 import {
 	findConfigPath,
+	findProjectRoot,
 	getConfig,
 	getConfigPath,
+	isProjectRoot,
 	loadConfig,
 } from "../src/config/index.ts";
 
@@ -278,5 +280,29 @@ test("loadConfig resolves a config above cwd", async () => {
 		assert.equal(getConfigPath(), path.join(root, "envgraph.config.js"));
 	} finally {
 		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+test("isProjectRoot and findProjectRoot detect the root via markers", () => {
+	const root = makeProject({
+		".git": "",
+		"packages/app/index.ts": "",
+	});
+	try {
+		assert.equal(isProjectRoot(root), true);
+		const deep = path.join(root, "packages", "app");
+		assert.equal(isProjectRoot(deep), false);
+		assert.equal(findProjectRoot(deep), path.resolve(root));
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+test("findProjectRoot returns undefined without markers", () => {
+	const dir = makeProject({});
+	try {
+		assert.equal(findProjectRoot(dir), undefined);
+	} finally {
+		rmSync(dir, { recursive: true, force: true });
 	}
 });

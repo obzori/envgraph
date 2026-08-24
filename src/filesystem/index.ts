@@ -1,12 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-
-export function findProjectRoot(startDir: string): string {
-	void startDir;
-	return startDir;
-}
-
 const SOURCE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx"]);
 const EXCLUDED_DIRECTORIES = new Set([
 	"node_modules",
