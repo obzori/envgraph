@@ -46,14 +46,34 @@ const CONFIG_CANDIDATES: readonly string[] = [
 	"envgraph.config.json",
 ];
 
-export function findConfigPath(cwd: string): string | undefined {
-	for (const name of CONFIG_CANDIDATES) {
-		const candidate = path.join(cwd, name);
-		if (existsSync(candidate)) {
-			return candidate;
+const PROJECT_MARKERS: readonly string[] = [".git", ".hg", ".svn", "package.json"];
+
+// nearest wins; search stops at the project root (marker dir) or disk root
+export function findConfigPath(startDir: string): string | undefined {
+	let dir = path.resolve(startDir);
+
+	for (;;) {
+		for (const name of CONFIG_CANDIDATES) {
+			const candidate = path.join(dir, name);
+			if (existsSync(candidate)) {
+				return candidate;
+			}
 		}
+
+		// marker check comes after the lookup so a config in the project
+		// root itself is still found
+		if (
+			PROJECT_MARKERS.some((m) => existsSync(path.join(dir, m)))
+		) {
+			return undefined;
+		}
+
+		const parent = path.dirname(dir);
+		if (parent === dir) {
+			return undefined;
+		}
+		dir = parent;
 	}
-	return undefined;
 }
 
 function mergeConfig(user: EnvGraphUserConfig): EnvGraphConfig {
@@ -77,17 +97,23 @@ function toUserConfig(value: unknown): EnvGraphUserConfig {
 }
 
 let cachedConfig: EnvGraphConfig | undefined;
+let cachedConfigPath: string | undefined;
 
 export function getConfig(): EnvGraphConfig {
 	return cachedConfig ?? DEFAULT_CONFIG;
 }
 
+// path of the config used by the last loadConfig call, if any
+export function getConfigPath(): string | undefined {
+	return cachedConfigPath;
+}
 
 export async function loadConfig(
 	cwd: string,
 	onError?: (message: string) => void,
 ): Promise<EnvGraphConfig> {
 	cachedConfig = undefined;
+	cachedConfigPath = undefined;
 
 	const configPath = findConfigPath(cwd);
 	if (configPath === undefined) {
@@ -105,6 +131,7 @@ export async function loadConfig(
 			user = toUserConfig(mod.default ?? {});
 		}
 		cachedConfig = mergeConfig(user);
+		cachedConfigPath = configPath;
 	} catch (error) {
 		onError?.(
 			`envgraph: failed to load ${path.basename(configPath)}: ${

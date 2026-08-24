@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
 	existsSync,
+	mkdirSync,
 	mkdtempSync,
 	readFileSync,
 	rmSync,
@@ -15,7 +16,12 @@ import {
 	buildConfigTemplate,
 } from "../src/cli/commands/create.ts";
 import { buildExampleContent } from "../src/core/env/generator.ts";
-import { findConfigPath, loadConfig, getConfig } from "../src/config/index.ts";
+import {
+	findConfigPath,
+	getConfig,
+	getConfigPath,
+	loadConfig,
+} from "../src/config/index.ts";
 
 type CreateOpts = {
 	cwd: string;
@@ -29,7 +35,9 @@ type CreateOpts = {
 function makeProject(files: Record<string, string> = {}): string {
 	const dir = mkdtempSync(path.join(tmpdir(), "envgraph-test-"));
 	for (const [name, content] of Object.entries(files)) {
-		writeFileSync(path.join(dir, name), content, "utf8");
+		const target = path.join(dir, name);
+		mkdirSync(path.dirname(target), { recursive: true });
+		writeFileSync(target, content, "utf8");
 	}
 	return dir;
 }
@@ -200,5 +208,75 @@ test("keepComments: false from config file reaches create example", async () => 
 		assert.equal(content, "PORT=3000\n\nDEBUG=true\n");
 	} finally {
 		rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
+// --- upward config search ---
+
+function makeNestedProject(files: Record<string, string>): string {
+	const root = makeProject({ ".git": "" });
+	for (const [name, content] of Object.entries(files)) {
+		const target = path.join(root, name);
+		mkdirSync(path.dirname(target), { recursive: true });
+		writeFileSync(target, content, "utf8");
+	}
+	return root;
+}
+
+test("findConfigPath searches upward and stops at the project root", () => {
+	const root = makeNestedProject({
+		"envgraph.config.json": "{}",
+		"packages/app/src/index.ts": "",
+	});
+	try {
+		const deep = path.join(root, "packages", "app", "src");
+		assert.equal(findConfigPath(deep), path.join(root, "envgraph.config.json"));
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+test("nearest config wins over an ancestor one", () => {
+	const root = makeNestedProject({
+		"envgraph.config.js": "export default {};",
+		"packages/app/envgraph.config.js": "export default {};",
+		"packages/app/src/index.ts": "",
+	});
+	try {
+		const deep = path.join(root, "packages", "app", "src");
+		assert.equal(
+			findConfigPath(deep),
+			path.join(root, "packages", "app", "envgraph.config.js"),
+		);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+test("no config is picked up from outside the project root", () => {
+	const outer = makeProject({
+		"envgraph.config.js": "export default {};",
+		"inner/.git": "",
+	});
+	try {
+		const inner = path.join(outer, "inner");
+		assert.equal(findConfigPath(inner), undefined);
+	} finally {
+		rmSync(outer, { recursive: true, force: true });
+	}
+});
+
+test("loadConfig resolves a config above cwd", async () => {
+	const root = makeNestedProject({
+		"envgraph.config.js": "export default { example: { keepComments: false } };",
+		"work/index.ts": "",
+	});
+	try {
+		const work = path.join(root, "work");
+		const config = await loadConfig(work);
+		assert.equal(config.example.keepComments, false);
+		assert.equal(getConfigPath(), path.join(root, "envgraph.config.js"));
+	} finally {
+		rmSync(root, { recursive: true, force: true });
 	}
 });

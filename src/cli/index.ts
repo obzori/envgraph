@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import { realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import path from "node:path";
 import chalk from "chalk";
 import { s } from "./style.ts";
 import { commands, envgraphCommand, findCommand } from "./commands/index.ts";
 import { printHelp, printCommandHelp } from "./commands/help.ts";
 import { printVersion } from "./commands/version.ts";
-import { loadConfig } from "../config/index.ts";
+import { loadConfig, getConfigPath } from "../config/index.ts";
 
 /**
  * Entry point for the `envgraph` CLI.
@@ -18,9 +19,18 @@ import { loadConfig } from "../config/index.ts";
  * imported and tested in isolation.
  */
 export async function run(argv: readonly string[]): Promise<number> {
-	await loadConfig(process.cwd(), (message) => {
+	const cwd = process.cwd();
+	await loadConfig(cwd, (message) => {
 		process.stderr.write(`${s.error(message)}\n`);
 	});
+
+	// found above cwd -> hint where the settings come from
+	const configPath = getConfigPath();
+	if (configPath !== undefined && path.dirname(configPath) !== path.resolve(cwd)) {
+		process.stderr.write(
+			`${s.dim(`envgraph: using config from ${path.relative(cwd, configPath)}`)}\n`,
+		);
+	}
 
 	const args = argv.slice(2);
 
