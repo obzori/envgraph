@@ -6,15 +6,22 @@ import { s } from "./style.ts";
 import { commands, envgraphCommand, findCommand } from "./commands/index.ts";
 import { printHelp, printCommandHelp } from "./commands/help.ts";
 import { printVersion } from "./commands/version.ts";
+import { loadConfig } from "../config/index.ts";
 
 /**
  * Entry point for the `envgraph` CLI.
  *
- * Parses the raw process arguments, dispatches to the matching command, and
- * returns a process exit code. Kept free of side effects so it can be imported
- * and tested in isolation.
+ * Loads the project's `envgraph.config.{js,ts,json}` (if present) so every
+ * command sees the effective configuration, then parses the raw process
+ * arguments, dispatches to the matching command, and returns a process exit
+ * code. Kept free of side effects (besides config loading) so it can be
+ * imported and tested in isolation.
  */
-export function run(argv: readonly string[]): number {
+export async function run(argv: readonly string[]): Promise<number> {
+	await loadConfig(process.cwd(), (message) => {
+		process.stderr.write(`${s.error(message)}\n`);
+	});
+
 	const args = argv.slice(2);
 
 	if (args.length === 0) {
@@ -71,5 +78,5 @@ function isEntryPoint(): boolean {
 }
 
 if (isEntryPoint()) {
-	process.exitCode = run(process.argv);
+	process.exitCode = await run(process.argv);
 }
