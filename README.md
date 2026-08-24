@@ -27,12 +27,13 @@
   <p>
     <img src="https://img.shields.io/node/v/envgraph?style=flat-square&label=Node.js&color=5FA04E" alt="Node.js >= 23.6" />
     <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5.x" />
-    <img src="https://img.shields.io/badge/zero_dependencies-✓-18181b?style=flat-square" alt="Zero dependencies" />
+    <img src="https://img.shields.io/badge/runtime%20dependency-chalk-18181b?style=flat-square&logo=npm&logoColor=white" alt="Runtime dependency: chalk" />
   </p>
+
   <sub>
     Find usages · detect loaders · discover <code>.env</code> files · generate <code>.env.example</code>
   </sub>
-  
+
   <br>
 </div>
 <br>
