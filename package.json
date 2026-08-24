@@ -42,7 +42,7 @@
     "developer-tools"
   ],
   "license": "MIT",
-  "author": "",
+  "author": "obzori",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/obzori/envgraph.git"
