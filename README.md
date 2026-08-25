@@ -161,6 +161,7 @@ from a subfolder, it is found in the project root and a hint is printed.
 | --- | --- |
 | `envgraph` | Check that envgraph is installed and working. |
 | `envgraph scan` | Detect `process.env` usages in the project's source files. |
+| `envgraph check` | Compare `.env` declarations with actual usage; exit `1` on missing variables. |
 | `envgraph create example [--force] [--dry-run]` | Generate `.env.example` from `.env`. |
 | `envgraph create config [--force] [--dry-run] [--ts\\|--js]` | Generate an `envgraph.config.ts/js` scaffold. |
 | `envgraph help` | Show usage information. |
