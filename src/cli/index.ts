@@ -7,7 +7,7 @@ import { s } from "./style.ts";
 import { commands, envgraphCommand, findCommand } from "./commands/index.ts";
 import { printHelp, printCommandHelp } from "./commands/help.ts";
 import { printVersion } from "./commands/version.ts";
-import { loadConfig, getConfigPath } from "../config/index.ts";
+import { loadConfig, getConfigPath, setConfigUi } from "../config/index.ts";
 
 /**
  * Entry point for the `envgraph` CLI.
@@ -34,11 +34,18 @@ export async function run(argv: readonly string[]): Promise<number> {
 
 	const args = argv.slice(2);
 
-	if (args.length === 0) {
+	// global --minimal flag: same as `ui: "minimal"` in the config
+	const minimal = args.includes("--minimal");
+	if (minimal) {
+		setConfigUi("minimal");
+	}
+	const cleanArgs = args.filter((a) => a !== "--minimal");
+
+	if (cleanArgs.length === 0) {
 		return envgraphCommand.run([]);
 	}
 
-	const [first = "", ...rest] = args;
+	const [first = "", ...rest] = cleanArgs;
 
 	if (first === "-h" || first === "--help") {
 		printHelp(commands);

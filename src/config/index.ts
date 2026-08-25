@@ -185,6 +185,11 @@ export function hasConfigKey(key: string): boolean {
 	return cachedUserKeys.has(key);
 }
 
+// runtime override for the ui theme (e.g. the global --minimal flag)
+export function setConfigUi(ui: UiTheme): void {
+	cachedConfig = { ...(cachedConfig ?? DEFAULT_CONFIG), ui };
+}
+
 export async function loadConfig(
 	cwd: string,
 	onError?: (message: string) => void,

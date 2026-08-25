@@ -22,6 +22,7 @@ export function printHelp(commands: readonly EnvGraphCommand[]): void {
 	lines.push(section("Options"));
 	lines.push(`  ${s.flag("-h")}, ${s.flag("--help")}     Show this help message.`);
 	lines.push(`  ${s.flag("-v")}, ${s.flag("--version")}  Print the installed version.`);
+	lines.push(`  ${s.flag("--minimal")}          Hide rules and banners for this run.`);
 	lines.push("");
 	lines.push(s.dim(`  Run ${chalk.hex("#F0ABFC")("envgraph <command> --help")} for details on a command.`));
 	lines.push(rule());
