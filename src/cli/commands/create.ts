@@ -5,6 +5,7 @@ import { s, stylizeLine } from "../style.ts";
 import { buildExampleContent } from "../../core/env/generator.ts";
 import { confirmSync } from "../prompt.ts";
 import { getConfig } from "../../config/index.ts";
+import { banner, rule } from "../ui.ts";
 
 /**
  * Warning printed after every successful write of `.env.example`. It is
@@ -283,8 +284,14 @@ export const createCommand: EnvGraphCommand = {
 			dryRun: args.includes("--dry-run") || args.includes("-d"), 
 		});
 
+		for (const line of banner("envgraph create", "scaffold generators")) {
+			process.stdout.write(`${line}\n`);
+		}
 		for (const line of outcome.stdout) {
 			process.stdout.write(`${stylizeLine(line)}\n`);
+		}
+		if (outcome.wrote) {
+			process.stdout.write(`${rule()}\n`);
 		}
 		for (const line of outcome.stderr) {
 			process.stderr.write(`${s.error(line)}\n`);

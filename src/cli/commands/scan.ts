@@ -8,6 +8,7 @@ import type { OutputFormat } from "../../output/index.ts";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { isProjectRoot, findProjectRoot, hasConfigKey, getConfig } from "../../config/index.ts";
+import { banner, rule } from "../ui.ts";
 
 /**
  * A tree with more than this many directory entries (files + folders,
@@ -295,6 +296,11 @@ export const scanCommand: EnvGraphCommand = {
 			},
 		});
 
+		if (!outcome.raw) {
+			for (const line of banner("envgraph scan", `scanning ${cwd}`)) {
+				process.stdout.write(`${line}\n`);
+			}
+		}
 		for (const line of outcome.stdout) {
 			process.stdout.write(
 				`${outcome.raw ? line : stylizeLine(line)}\n`,
@@ -302,6 +308,9 @@ export const scanCommand: EnvGraphCommand = {
 		}
 		for (const line of outcome.stderr) {
 			process.stderr.write(`${s.error(line)}\n`);
+		}
+		if (!outcome.raw && outcome.exitCode === 0) {
+			process.stdout.write(`${rule()}\n`);
 		}
 
 		return outcome.exitCode;

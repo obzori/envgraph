@@ -45,7 +45,7 @@ export function stylizeLine(line: string): string {
 		return line.replace(/^(\d+)/, (n) => chalk.bold(n));
 	}
 	if (line === "Environment loaders" || line === ".env files") {
-		return s.heading(line);
+		return `\n${s.heading(line)}`;
 	}
 	if (line.startsWith("IMPORTANT:") || line.startsWith("Make sure it does not")) {
 		return s.warning(line);

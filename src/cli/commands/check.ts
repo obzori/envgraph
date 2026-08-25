@@ -7,6 +7,7 @@ import { countEntries, discoverEnvFiles } from "../../filesystem/index.ts";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { DIRECTORY_ENTRY_LIMIT } from "./scan.ts";
+import { banner, rule } from "../ui.ts";
 
 export interface CheckIssue {
 	readonly kind: "missing" | "unused" | "duplicate";
@@ -229,22 +230,28 @@ export function runCheck(
 		const group = issues.filter((i) => i.kind === kind);
 		if (group.length === 0) continue;
 		stdout.push("");
+		const badge =
+			kind === "missing"
+				? s.error("● MISSING")
+				: s.warning(`○ ${kind.toUpperCase()}`);
 		switch (kind) {
 			case "missing":
-				stdout.push(s.error("MISSING — used in code, not defined in any .env file:"));
+				stdout.push(`${badge} ${s.dim("— used in code, not defined in any .env file:")}`);
 				break;
 			case "unused":
-				stdout.push(s.warning("UNUSED — declared but never used:"));
+				stdout.push(`${badge} ${s.dim("— declared but never used:")}`);
 				break;
 			case "duplicate":
-				stdout.push(s.warning("DUPLICATE — declared more than once:"));
+				stdout.push(`${badge} ${s.dim("— declared more than once:")}`);
 				break;
 		}
 		const width = Math.max(...group.map((i) => i.name.length));
 		for (const issue of group) {
 			const [first, ...rest] = issue.locations;
-			const extra = rest.length > 0 ? ` (+${rest.length} more)` : "";
-			stdout.push(`  ${issue.name.padEnd(width)}  ${first ?? ""}${extra}`);
+			const extra = rest.length > 0 ? `  ${s.count(`+${rest.length} more`)}` : "";
+			stdout.push(
+				`  ${s.name(issue.name.padEnd(width))}  ${s.location(first ?? "")}${extra}`,
+			);
 		}
 	}
 
@@ -270,8 +277,19 @@ export const checkCommand: EnvGraphCommand = {
 				process.stdout.write(`${s.warning(line)}\n`);
 			},
 		});
+		if (!outcome.raw) {
+			for (const line of banner(
+				"envgraph check",
+				`checking ${process.cwd()}`,
+			)) {
+				process.stdout.write(`${line}\n`);
+			}
+		}
 		for (const line of outcome.stdout) {
 			process.stdout.write(`${line}\n`);
+		}
+		if (!outcome.raw) {
+			process.stdout.write(`${rule()}\n`);
 		}
 		for (const line of outcome.stderr) {
 			process.stderr.write(`${s.error(line)}\n`);
