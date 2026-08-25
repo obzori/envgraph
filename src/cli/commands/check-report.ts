@@ -9,10 +9,7 @@ const HEADERS: Record<CheckIssue["kind"], string> = {
 	duplicate: "— declared more than once:",
 };
 
-/**
- * Render the classic human-readable check report.
- * @param missingCount used to append the "N missing ... — exit 1" footer.
- */
+// human-readable check report; missingCount drives the exit-code footer
 export function formatCheckReport(
 	issues: readonly CheckIssue[],
 	envFileCount: number,

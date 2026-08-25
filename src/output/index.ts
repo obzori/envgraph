@@ -1,16 +1,15 @@
 import type { ScanResult } from "../core/scanner/scanner.ts";
 
-/** All output formats; `classic` is the human-readable default report. */
+// "classic" is the human-readable default report handled by the scan command
 export type OutputFormat = "json" | "table" | "mermaid" | "classic";
 
-/** Formats that can be serialized by {@link formatOutput}. */
+// formats serializable by formatOutput
 export type SerializableOutputFormat = Exclude<OutputFormat, "classic">;
 
 export interface OutputOptions {
 	readonly format: SerializableOutputFormat;
 }
 
-/** Serialize an analysis result into the requested format. */
 export function formatOutput(data: ScanResult, options: OutputOptions): string {
 	switch (options.format) {
 		case "json":
@@ -88,10 +87,7 @@ function formatTable(data: ScanResult): string {
 	return lines.join("\n");
 }
 
-/**
- * Render a Mermaid flowchart of the environment graph: each `.env*` file
- * feeds its loaders, which feed the source files that read variables.
- */
+// mermaid flowchart: .env files feed loaders, loaders feed usage sites
 function formatMermaid(data: ScanResult): string {
 	const lines: string[] = ["flowchart LR"];
 

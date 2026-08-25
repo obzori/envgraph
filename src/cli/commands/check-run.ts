@@ -16,12 +16,8 @@ export interface CheckOutcome {
 	readonly issues?: readonly CheckIssue[];
 }
 
-/**
- * Implement `envgraph check`.
- *
- * Pure w.r.t. process state — printing is done by the command wrapper.
- * Async-free so it can run in a worker thread while the spinner animates.
- */
+// implements `envgraph check`; pure w.r.t. process state, async-free so it
+// can run in a worker thread while the spinner animates
 export function runCheck(
 	args: readonly string[],
 	root: string,

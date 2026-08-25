@@ -1,10 +1,5 @@
-/**
- * envgraph — public package entry point.
- *
- * Re-exports the public API surface (CLI runner, core orchestration, analysis
- * and configuration types) so consumers can `import { runEnvGraph } from
- * "envgraph"` in addition to using the command-line binary.
- */
+// public entry point: re-exports the API surface so consumers can do
+// `import { runEnvGraph } from "envgraph"` instead of the CLI binary.
 export * from "./cli/index.ts";
 export * from "./core/index.ts";
 export * from "./analysis/index.ts";

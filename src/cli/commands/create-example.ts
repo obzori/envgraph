@@ -4,7 +4,7 @@ import { buildExampleContent } from "../../core/env/generator.ts";
 import { getConfig } from "../../config/index.ts";
 import { createConfig } from "./create-config.ts";
 
-/** Warning printed after every successful write of `.env.example`. */
+// printed after every successful write of .env.example
 export const IMPORTANT_WARNING: readonly string[] = [
 	"IMPORTANT: CHECK .env.example BEFORE COMMITTING IT.",
 	"Make sure it does not contain passwords, tokens, API keys,",
@@ -23,17 +23,11 @@ export interface CreateOutcome {
 	readonly exitCode: number;
 	readonly stdout: readonly string[];
 	readonly stderr: readonly string[];
-	/** Whether a file was written (created or overwritten). */
 	readonly wrote: boolean;
 }
 
-/**
- * Implement `envgraph create <example|config>`.
- *
- * Pure w.r.t. process state: returns an outcome describing what would be/was
- * printed. The actual writing to stdout/stderr is performed by the command
- * runner so this function can be unit-tested without capturing global streams.
- */
+// implements `envgraph create <example|config>`; pure w.r.t. process state —
+// printing is done by the command runner so this is unit-testable
 export function createExample(
 	args: readonly string[],
 	opts: CreateExampleOptions,

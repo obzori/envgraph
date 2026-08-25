@@ -10,33 +10,23 @@ export interface ScanOutcome {
 	readonly exitCode: number;
 	readonly stdout: readonly string[];
 	readonly stderr: readonly string[];
-	/**
-	 * True when stdout carries machine-readable/formatted content
-	 * (`--format` was given) that must be printed verbatim, without
-	 * CLI styling.
-	 */
+	// true when stdout carries formatted content (--format given) that must
+	// be printed verbatim, without CLI styling
 	readonly raw?: boolean;
 }
 
 export interface ScanRunOptions {
 	notify?: (line: string) => void;
-	/** Overrides DIRECTORY_ENTRY_LIMIT for the size guard (tests). */
 	directoryEntryLimit?: number;
-	/** Overrides the scanner's large-directory notice threshold (tests). */
 	largeDirectoryThreshold?: number;
-	/** Include globs (from `envgraph.config`); see {@link ScanOptions}. */
+	// include/exclude globs from envgraph.config (see ScanOptions)
 	include?: readonly string[];
-	/** Exclude globs (from `envgraph.config`). */
 	exclude?: readonly string[];
 }
 
-/**
- * Implement `envgraph scan`.
- *
- * Pure w.r.t. process state — returns an outcome; printing is done by the
- * command wrapper. Async-free so it can run in a worker thread while the
- * main thread animates a spinner.
- */
+// implements `envgraph scan`; pure w.r.t. process state — returns an outcome,
+// printing is done by the command wrapper. Async-free so it can run in a
+// worker thread while the main thread animates a spinner.
 export function runScan(
 	args: readonly string[],
 	root: string,

@@ -8,13 +8,11 @@ export interface CreateConfigOutcome {
 	readonly exitCode: number;
 	readonly stdout: readonly string[];
 	readonly stderr: readonly string[];
-	/** Whether a config file was written. */
 	readonly wrote: boolean;
-	/** Name of the config file that would be/was written. */
 	readonly fileName?: string;
 }
 
-/** Template for a generated `envgraph.config.<ts|mjs>`. */
+// template for a generated envgraph.config.<ts|mjs>
 export function buildConfigTemplate(ts: boolean): string {
 	const body = `/**
  * envgraph configuration.
@@ -51,11 +49,7 @@ export default {
 	return body;
 }
 
-/**
- * Decide whether the project is TypeScript-based: an explicit `--ts`/`--js`
- * flag wins, otherwise look for `tsconfig.json` or any `.ts`/`.mts` file in
- * the project root.
- */
+// ts project = explicit --ts flag, or tsconfig.json / any .ts|.mts file in root
 export function detectProjectLanguage(
 	cwd: string,
 	flags: ReadonlySet<string>,
@@ -78,11 +72,8 @@ export function detectProjectLanguage(
 	}
 }
 
-/**
- * Implement `envgraph create config`.
- *
- * Pure w.r.t. process state; printing is performed by the command runner.
- */
+// implements `envgraph create config`; pure w.r.t. process state, printing
+// is done by the command runner
 export function createConfig(
 	args: readonly string[],
 	opts: CreateConfigOptions,

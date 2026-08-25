@@ -12,10 +12,7 @@ export { runCheck } from "./check-run.ts";
 export type { CheckIssue } from "./check-issues.ts";
 export type { CheckOutcome } from "./check-run.ts";
 
-/**
- * CLI command wrapper. Runs the pure {@link runCheck} off-thread so a spinner
- * can animate, then prints the banner, issues, and closing rule.
- */
+// CLI wrapper: runs the pure runCheck off-thread so a spinner can animate
 export const checkCommand: EnvGraphCommand = {
 	name: "check",
 	description: "Compare .env declarations with actual process.env usage.",

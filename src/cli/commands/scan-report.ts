@@ -1,7 +1,7 @@
 import { s } from "../style.ts";
 import type { ScanResult } from "../../core/scanner/scanner.ts";
 
-/** Drop the transient large-directory notice before serializing/rendering. */
+// drop the transient large-directory notice before serializing/rendering
 export function stripNotice(result: ScanResult): ScanResult {
 	if (result.largeDirectoryNotice === undefined) {
 		return result;
@@ -11,10 +11,7 @@ export function stripNotice(result: ScanResult): ScanResult {
 	return rest;
 }
 
-/**
- * Render the classic human-readable scan report. Returns the stdout lines;
- * parse errors go on `stderr`.
- */
+// classic human-readable report; parse errors go on stderr
 export function formatClassicReport(
 	result: ScanResult,
 	stderr: string[],

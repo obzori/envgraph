@@ -5,13 +5,8 @@ import { fileURLToPath } from "node:url";
 import type { EnvGraphCommand } from "./types.ts";
 import { s } from "../style.ts";
 
-/**
- * Resolve the version from the nearest package.json.
- *
- * The path is relative to this file, which is `src/cli/commands/` during
- * development and `dist/cli/commands/` in the published package — both are
- * three levels below the package root, so the same relative lookup works.
- */
+// version comes from the nearest package.json — three levels up both in
+// development (src/cli/commands/) and in the published package (dist/...)
 export function readVersion(): string {
 	const here = fileURLToPath(import.meta.url);
 	const packageJsonPath = path.resolve(path.dirname(here), "../../../package.json");

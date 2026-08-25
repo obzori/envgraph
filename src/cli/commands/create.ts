@@ -12,10 +12,7 @@ export { createConfig, buildConfigTemplate, detectProjectLanguage } from "./crea
 export type { CreateExampleOptions, CreateOutcome } from "./create-example.ts";
 export type { CreateConfigOptions, CreateConfigOutcome } from "./create-config.ts";
 
-/**
- * CLI command wrapper. Binds the pure {@link createExample} to real process
- * state: prints the banner, writes the outcome, and adds the closing rule.
- */
+// CLI wrapper around createExample
 export const createCommand: EnvGraphCommand = {
 	name: "create",
 	description: "Generate scaffold files (e.g. .env.example from .env, or envgraph.config).",

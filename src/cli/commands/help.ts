@@ -4,9 +4,7 @@ import { banner, rule, section } from "../ui.ts";
 import type { EnvGraphCommand } from "./types.ts";
 import { readVersion } from "./version.ts";
 
-/**
- * Render general help text for the given set of registered commands.
- */
+// general help for all registered commands
 export function printHelp(commands: readonly EnvGraphCommand[]): void {
 	const lines: string[] = [];
 	lines.push(...banner(`envgraph ${chalk.dim("v" + readVersion())}`, "map environment variables to the files that use them"));
@@ -29,11 +27,7 @@ export function printHelp(commands: readonly EnvGraphCommand[]): void {
 	process.stdout.write(lines.join("\n") + "\n");
 }
 
-/**
- * Render per-command help. Used automatically by the CLI dispatcher when a
- * command receives `-h` / `--help`, so every command supports it without
- * implementing it itself.
- */
+// per-command help; dispatched automatically for -h/--help
 export function printCommandHelp(command: EnvGraphCommand): void {
 	const lines: string[] = [];
 	lines.push(...banner(`${command.name}`, command.description));

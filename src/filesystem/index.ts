@@ -9,10 +9,8 @@ const EXCLUDED_DIRECTORIES = new Set([
 	"build",
 ]);
 
-/**
- * Expand top-level `{a,b}` brace alternation into several plain globs.
- * Nested braces are supported; a lone `{`/`}` is left as-is.
- */
+// expand top-level {a,b} brace alternation into plain globs; nested braces
+// supported, a lone brace is left as-is
 function expandBraces(pattern: string): string[] {
 	const open = pattern.indexOf("{");
 	if (open === -1) {
@@ -110,12 +108,8 @@ function regexFor(glob: string): RegExp {
 	return compiled;
 }
 
-/**
- * True when a POSIX-style relative path matches a glob pattern such as
- * "src" + "/**" + "/*.ts", "*.js" or "scripts/{dev,build}.mts". A trailing
- * "/" is ignored, and a pattern without any wildcard (e.g. "src") matches
- * every file under that directory.
- */
+// glob match against a POSIX-style relative path; trailing "/" ignored,
+// wildcard-less patterns (e.g. "src") match everything under the directory
 export function matchGlob(relativePath: string, pattern: string): boolean {
 	let glob = pattern.trim().replace(/^\.\//, "").replace(/\/+$/, "");
 	if (glob === "") {
@@ -127,24 +121,14 @@ export function matchGlob(relativePath: string, pattern: string): boolean {
 	return expandBraces(glob).some((g) => regexFor(g).test(relativePath));
 }
 
-/** Include/exclude glob filters plus the discovery-progress callback. */
+// include/exclude glob filters plus the discovery-progress callback
 export interface SourceFileFilter {
-	/** Glob patterns; a file must match at least one to be included. */
 	readonly include?: readonly string[];
-	/** Glob patterns; matching files are skipped even if included. */
 	readonly exclude?: readonly string[];
-	/**
-	 * Called during the walk with the running count of files found so far —
-	 * lets callers warn about very large directories before the whole tree
-	 * has been traversed.
-	 */
+	// called during the walk with the running count of files found so far
 	readonly onFileDiscovered?: (count: number) => void;
 }
 
-/**
- * Discover the set of source files under `root` that match the configured
- * include/exclude globs.
- */
 export function discoverSourceFiles(
 	root: string,
 	options?: SourceFileFilter,
@@ -187,21 +171,13 @@ export function discoverSourceFiles(
 	return results.sort();
 }
 
-/**
- * True when a filename matches the common `.env*` convention used by dotenv
- * and Node.js: exactly `.env`, or `.env.<something>` (`.env.local`,
- * `.env.production`, `.env.example`, …). Names like `.environment`,
- * `env.txt`, or `something.env.backup` do not match.
- */
+// matches dotenv/node convention: exactly .env or .env.<something>
 export function isEnvFileName(fileName: string): boolean {
 	return fileName === ".env" || fileName.startsWith(".env.");
 }
 
-/**
- * Discover `.env*` files under `root` (same exclusions as source discovery).
- * Returns paths relative to `root`, sorted. Never reads file contents —
- * only names, so no secret values are ever touched.
- */
+// discover .env* files under root (same exclusions as source discovery);
+// names only — contents are never read
 export function discoverEnvFiles(root: string): string[] {
 	const results: string[] = [];
 
@@ -229,11 +205,8 @@ export function discoverEnvFiles(root: string): string[] {
 	return results.sort();
 }
 
-/**
- * Cheaply estimate the size of a project tree: counts files and directories
- * under `root`, skipping {@link EXCLUDED_DIRECTORIES}, stopping as soon as
- * more than `limit` entries have been seen. Never reads file contents.
- */
+// cheaply estimate tree size under root, stopping after `limit` entries;
+// never reads file contents
 export function countEntries(
 	root: string,
 	limit: number,
@@ -269,10 +242,7 @@ export function countEntries(
 	return { count, exceeded: count > limit };
 }
 
-/**
- * Read a `.env` file into a `key → value` map, or return `null` if the file
- * does not exist.
- */
+// read a .env file into a key -> value map; null when the file is missing
 export function readEnvFile(filePath: string): Map<string, string> | null {
 	if (!existsSync(filePath)) {
 		return null;
@@ -298,7 +268,7 @@ export function readEnvFile(filePath: string): Map<string, string> | null {
 	return result;
 }
 
-/** Resolve a relative path against a project root. */
+// resolve a relative path against a project root
 export function toAbsolute(relativePath: string, root: string): string {
 	return path.resolve(root, relativePath);
 }

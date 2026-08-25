@@ -1,6 +1,6 @@
 import type { OutputFormat } from "../output/index.ts";
 
-/** Output decoration level for the CLI. */
+// output decoration level for the CLI
 export type UiTheme = "pretty" | "minimal";
 
 export interface ExampleConfig {

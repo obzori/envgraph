@@ -1,14 +1,5 @@
-/**
- * A single parsed line of a `.env` file, in file order.
- *
- * - `blank`: an empty or whitespace-only line.
- * - `comment`: a `#` (or `;`) comment line. `raw` is the verbatim line text
- *   (without the trailing newline), preserving any leading indentation.
- * - `assignment`: a `KEY=value` pair. `value` is the trimmed text after the
- *   first `=` (quotes are preserved as part of the value).
- * - `raw`: a non-empty line without `=` that is kept verbatim so unexpected
- *   content is never silently dropped.
- */
+// one parsed line of a .env file, in file order:
+// blank | comment (raw kept verbatim) | raw line without "=" | KEY=value
 export type EnvLine =
 	| { readonly kind: "blank" }
 	| { readonly kind: "comment"; readonly raw: string }
@@ -19,14 +10,8 @@ export type EnvLine =
 			readonly value: string;
 	  };
 
-/**
- * Parse `.env` file contents into an ordered list of {@link EnvLine} entries.
- *
- * Supports `KEY=value` (split on the first `=`, so values may contain `=`), empty
- * values (`KEY=`), quoted values (quotes are kept as part of the value text),
- * `#`/`;` comment lines, and blank lines. Order is preserved so a generated
- * `.env.example` mirrors the source layout.
- */
+// parse .env contents preserving order so generated .env.example mirrors
+// the source layout; split on first "=", quotes kept as part of the value
 export function parseEnvFile(content: string): EnvLine[] {
 	const lines = content.split(/\r?\n/);
 	const result: EnvLine[] = [];

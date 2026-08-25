@@ -56,10 +56,7 @@ function collectDeclared(
 	return { defined, duplicates };
 }
 
-/**
- * Cross-reference variables declared in `envFiles` with actual `process.env`
- * usage and produce a sorted issue list.
- */
+// cross-reference declared variables with actual usage -> sorted issue list
 export function buildIssues(
 	root: string,
 	envFiles: readonly string[],

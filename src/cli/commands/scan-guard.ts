@@ -1,17 +1,9 @@
 import { countEntries } from "../../filesystem/index.ts";
 
-/**
- * A tree with more than this many directory entries (files + folders,
- * excluding `node_modules`, `.git`, `dist`, `build`) is refused unless
- * `--force` is passed. The check is cheap and aborts early.
- */
+// trees with more entries than this are refused unless --force
 export const DIRECTORY_ENTRY_LIMIT = 50_000;
 
-/**
- * Guard against absurdly large trees. Shared by `scan` and `check`.
- * Returns an error message (via `stderr`) when the scan is refused, or
- * `null` when it may proceed.
- */
+// shared by scan and check; true = scan refused (message already on stderr)
 export function checkLargeDirectory(
 	root: string,
 	args: readonly string[],

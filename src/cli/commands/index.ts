@@ -6,12 +6,8 @@ import { versionCommand } from "./version.ts";
 import { scanCommand } from "./scan.ts";
 import { printHelp } from "./help.ts";
 
-/**
- * Registry of all CLI subcommands.
- *
- * Adding a new command is just: create a module in this folder, then append it
- * to this array. Order here determines the order shown in help output.
- */
+// command registry; order here = order in help output.
+// Adding a command: create a module in this folder, append it below.
 export const commands: readonly EnvGraphCommand[] = [
 	envgraphCommand,
 	createCommand,
@@ -29,9 +25,6 @@ export const commands: readonly EnvGraphCommand[] = [
 	versionCommand,
 ];
 
-/**
- * Look up a command by its name. Used by the CLI dispatcher.
- */
 export function findCommand(name: string): EnvGraphCommand | undefined {
 	return commands.find((command) => command.name === name);
 }

@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-/** Runtimes/environments from which a variable read was detected. */
+// runtime the variable was read from
 export type EnvSource = "process" | "vite" | "bun" | "deno";
 
 export interface EnvAccess {
@@ -9,7 +9,6 @@ export interface EnvAccess {
 	readonly source?: EnvSource;
 }
 
-/** Kinds of statically-recognized environment loading mechanisms. */
 export type EnvLoaderKind = "dotenv" | "node-load-env-file";
 
 export interface EnvLoader {
@@ -18,9 +17,7 @@ export interface EnvLoader {
 	readonly envFile?: string;
 }
 
-/**
- * True when `node` is exactly the `process.env` property-access expression.
- */
+// exactly the process.env property-access expression
 function isProcessEnv(node: ts.Expression): boolean {
 	return (
 		ts.isPropertyAccessExpression(node) &&
@@ -58,7 +55,7 @@ function envObjectSource(node: ts.Expression): EnvSource | undefined {
 	return undefined;
 }
 
-/** Extract a static `path: "..."` string from a `dotenv.config({...})` argument. */
+// static path: "..." from a dotenv.config({...}) argument
 function configPathArgument(
 	callArguments: readonly ts.Expression[],
 ): string | undefined {
@@ -193,11 +190,7 @@ function isDotenvConfigCallee(
 	return false;
 }
 
-/**
- * Extract every statically-analyzable environment loading call from source
- * code. Detection is purely structural (AST-based): string literals like
- * `"dotenv.config()"` and comments never match.
- */
+// every statically-analyzable env loading call; purely structural (AST)
 export function findEnvLoaders(source: string): EnvLoader[] {
 	const sourceFile = ts.createSourceFile(
 		"file.ts",
@@ -263,11 +256,8 @@ export function findEnvLoaders(source: string): EnvLoader[] {
 	return loaders;
 }
 
-/**
- * Extract every statically-analyzable environment variable access from source
- * code: `process.env` (dot/bracket/destructuring), `import.meta.env` (Vite),
- * `Bun.env` and `Deno.env.get("...")`.
- */
+// every statically-analyzable env variable access: process.env
+// (dot/bracket/destructuring), import.meta.env, Bun.env, Deno.env.get("...")
 export function findEnvAccesses(source: string): EnvAccess[] {
 	const sourceFile = ts.createSourceFile(
 		"file.ts",

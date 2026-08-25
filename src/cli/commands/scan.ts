@@ -16,11 +16,7 @@ export { DIRECTORY_ENTRY_LIMIT } from "./scan-guard.ts";
 export type { ScanOutcome, ScanRunOptions } from "./scan-run.ts";
 export type { ScanFlags } from "./scan-flags.ts";
 
-/**
- * CLI command wrapper. Binds the pure {@link runScan} to real process state:
- * prints the banner, runs the analysis off-thread so a spinner can animate,
- * and renders the closing rule.
- */
+// CLI wrapper around runScan: banner + spinner + closing rule
 export const scanCommand: EnvGraphCommand = {
 	name: "scan",
 	description: "Detect process.env usages in the project's source files.",

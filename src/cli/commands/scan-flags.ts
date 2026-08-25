@@ -1,6 +1,6 @@
 import type { OutputFormat } from "../../output/index.ts";
 
-/** All formats accepted by `scan --format` (including the default report). */
+// formats accepted by scan --format (including the default report)
 export const FORMATS: readonly OutputFormat[] = [
 	"classic",
 	"json",
@@ -13,7 +13,7 @@ export interface ScanFlags {
 	readonly output?: string;
 }
 
-/** Parse `--format <fmt>` / `--format=<fmt>` and `-o/--output <file>`. */
+// parse --format <fmt> / --format=<fmt> and -o/--output <file>
 export function parseScanFlags(args: readonly string[]): {
 	flags: ScanFlags;
 	error?: string;
