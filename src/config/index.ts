@@ -114,6 +114,8 @@ function toUserConfig(value: unknown): EnvGraphUserConfig {
 
 let cachedConfig: EnvGraphConfig | undefined;
 let cachedConfigPath: string | undefined;
+// top-level keys explicitly set in the user's config file
+let cachedUserKeys: ReadonlySet<string> = new Set();
 
 export function getConfig(): EnvGraphConfig {
 	return cachedConfig ?? DEFAULT_CONFIG;
@@ -124,12 +126,18 @@ export function getConfigPath(): string | undefined {
 	return cachedConfigPath;
 }
 
+// true when the loaded config file explicitly sets this key
+export function hasConfigKey(key: string): boolean {
+	return cachedUserKeys.has(key);
+}
+
 export async function loadConfig(
 	cwd: string,
 	onError?: (message: string) => void,
 ): Promise<EnvGraphConfig> {
 	cachedConfig = undefined;
 	cachedConfigPath = undefined;
+	cachedUserKeys = new Set();
 
 	const configPath = findConfigPath(cwd);
 	if (configPath === undefined) {
@@ -148,6 +156,11 @@ export async function loadConfig(
 		}
 		cachedConfig = mergeConfig(user);
 		cachedConfigPath = configPath;
+		cachedUserKeys = new Set(
+			Object.keys(user).filter(
+				(k) => (user as Record<string, unknown>)[k] !== undefined,
+			),
+		);
 	} catch (error) {
 		onError?.(
 			`envgraph: failed to load ${path.basename(configPath)}: ${

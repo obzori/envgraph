@@ -21,6 +21,7 @@ import {
 	findProjectRoot,
 	getConfig,
 	getConfigPath,
+	hasConfigKey,
 	isProjectRoot,
 	loadConfig,
 } from "../src/config/index.ts";
@@ -336,5 +337,31 @@ test("findProjectRoot returns undefined without markers", () => {
 		assert.equal(findProjectRoot(dir), undefined);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test("hasConfigKey tracks explicitly set top-level keys only", async () => {
+	const cwd = makeProject({
+		"envgraph.config.json":
+			'{ "outputFormat": "table", "example": { "keepComments": false } }',
+	});
+	try {
+		await loadConfig(cwd);
+		assert.equal(hasConfigKey("outputFormat"), true);
+		assert.equal(hasConfigKey("example"), true);
+		// not set in the file -> false even though it has a merged default
+		assert.equal(hasConfigKey("include"), false);
+	} finally {
+		rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
+test("hasConfigKey is false when there is no config file", async () => {
+	const cwd = makeProject();
+	try {
+		await loadConfig(cwd);
+		assert.equal(hasConfigKey("outputFormat"), false);
+	} finally {
+		rmSync(cwd, { recursive: true, force: true });
 	}
 });

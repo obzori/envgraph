@@ -7,7 +7,7 @@ import { formatOutput } from "../../output/index.ts";
 import type { OutputFormat } from "../../output/index.ts";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { isProjectRoot, findProjectRoot } from "../../config/index.ts";
+import { isProjectRoot, findProjectRoot, hasConfigKey, getConfig } from "../../config/index.ts";
 
 /**
  * A tree with more than this many directory entries (files + folders,
@@ -276,7 +276,19 @@ export const scanCommand: EnvGraphCommand = {
 			);
 		}
 
-		const outcome = runScan(args, cwd, {
+		// outputFormat from envgraph.config becomes the default format;
+		// an explicit --format flag always wins
+		let effectiveArgs = args;
+		if (
+			hasConfigKey("outputFormat") &&
+			!args.some(
+				(a) => a === "--format" || a === "-F" || a.startsWith("--format="),
+			)
+		) {
+			effectiveArgs = [...args, "--format", getConfig().outputFormat];
+		}
+
+		const outcome = runScan(effectiveArgs, cwd, {
 			// Print the large-directory notice live, before parsing starts.
 			notify(line) {
 				process.stdout.write(`${s.warning(line)}\n`);
