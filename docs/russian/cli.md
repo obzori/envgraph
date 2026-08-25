@@ -140,6 +140,24 @@ envgraph create example [--force] [--dry-run]
   - с `--force` перезапись без вопросов.
 - Успех: `✓ Created .env.example` плюс предупреждение о проверке — выход `0`.
 
+## `envgraph check`
+
+```bash
+envgraph check [--format json] [-o <file>] [--force]
+```
+
+Сравнивает переменные, объявленные в файлах `.env*`, с теми, что реально
+используются через `process.env` в исходниках:
+
+- **MISSING** — используется в коде, но не объявлена ни в одном `.env*` →
+  **выход 1** (удобно как шлюз в CI: `npx envgraph check && npm start`);
+- **UNUSED** — объявлена, но нигде не используется;
+- **DUPLICATE** — объявлена более одного раза.
+
+Опции: `--format json` (машиночитаемый `{ ok, envFiles, issues }`),
+`--output <file>` / `-o`, `--force` (отключает защиту от больших каталогов),
+`--help`. Правила больших каталогов — как у `scan`.
+
 ## `envgraph create config`
 
 ```bash

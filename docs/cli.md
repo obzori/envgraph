@@ -58,6 +58,7 @@ Usage:
 Commands:
   envgraph   Check that envgraph is installed and working.
   create     Generate scaffold files (e.g. .env.example from .env).
+  check      Compare .env declarations with actual process.env usage.
   scan       Detect process.env usages in the project's source files.
   help       Show usage information.
   version    Print the installed version.
@@ -207,6 +208,24 @@ Behavior:
   - Non-interactive (no TTY): refuses to overwrite — exit `1`.
 - Success: writes the file and prints `✓ Created .env.example` plus the
   review warning — exit `0`.
+
+## `envgraph check`
+
+```bash
+envgraph check [--format json] [-o <file>] [--force]
+```
+
+Compares variables declared in `.env*` files with those actually used via
+`process.env` in the source tree:
+
+- **MISSING** — used in code but not defined in any `.env*` file → **exit 1**
+  (safe to use as a CI gate: `npx envgraph check && npm start`);
+- **UNUSED** — declared but never referenced;
+- **DUPLICATE** — declared more than once across env files.
+
+Options: `--format json` (machine-readable `{ ok, envFiles, issues }`),
+`--output <file>` / `-o`, `--force` (skip the large-directory guard),
+`--help`. The same large-directory rules as `scan` apply.
 
 ## `envgraph create config`
 
