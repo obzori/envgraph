@@ -6,17 +6,24 @@
 src/
 ├── index.ts            # public package entry point (re-exports below)
 ├── cli/
-│   ├── index.ts        # CLI entry point: arg parsing, dispatch, bin script
+│   ├── index.ts        # CLI dispatch, global flags (--minimal), bin script
+│   ├── ui.ts           # shared UI primitives: rule(), section(), banner()
+│   ├── spinner.ts      # simpleDotsScrolling progress animation (TTY only)
+│   ├── offload.ts      # run a pure fn in a worker thread (keeps spinner alive)
 │   ├── prompt.ts       # minimal synchronous y/N confirmation
-│   └── commands/       # one module per subcommand + registry (index.ts)
+│   ├── style.ts        # chalk color helpers
+│   └── commands/       # one folder-command per subcommand + registry (index.ts)
 ├── core/
 │   ├── scanner/        # source-file scanning: ast.ts, scanner.ts
 │   └── env/            # .env parser, secret sanitizer, example generator
 ├── analysis/           # programmatic analysis API (scaffold, see limitations.md)
-├── config/             # envgraph.config discovery, loading and merging
+├── config/
+│   ├── defaults.ts     # types + DEFAULT_CONFIG + merge helpers
+│   ├── loader.ts       # envgraph.config discovery, loading, cache
+│   └── index.ts        # re-exports (single import path for consumers)
 ├── output/             # output formatting (json, table, mermaid)
 └── filesystem/         # file discovery and .env reading helpers
-tests/                  # node:test suites (cli, create, create-config, scan, …)
+tests/                  # node:test suites (cli, check, create, scan, …)
 dist/                   # build output (published to npm)
 ```
 
@@ -61,12 +68,17 @@ Tests use the built-in [`node:test`](https://nodejs.org/api/test.html) runner
 
 - `cli.test.ts` — CLI dispatch, help/version, unknown commands.
 - `scan.test.ts` — file discovery, AST detection, grouping, error handling.
+- `check.test.ts` — .env vs usage comparison (missing/unused/duplicate).
 - `create.test.ts` — `.env` parsing, sanitization, generation, flags,
   overwrite behavior.
+- `create-config.test.ts` — config discovery, merging, themes, hasConfigKey.
+- `envfiles.test.ts`, `loaders.test.ts`, `output.test.ts` — core building blocks.
 
 The core command logic is written as pure functions (e.g. `runScan`,
-`createExample`) that return outcomes instead of writing to process streams,
-so tests do not need stream capture. Keep new code following this pattern.
+`runCheck`, `createExample`) that return outcomes instead of writing to
+process streams, so tests do not need stream capture. Keep new code following
+this pattern; wrappers that touch real process state are intentionally thin
+and hard to test, so put logic in the pure functions.
 
 Run a single suite:
 
@@ -84,24 +96,84 @@ node --test tests/create.test.ts
 
 Keep changes consistent with the existing style: tabs for indentation,
 JSDoc comments on exported functions, and pure-function cores with thin CLI
-wrappers.
+wrappers. UI decoration (rules/banners) belongs in `ui.ts`; per-command
+presentation should reuse `ui.ts` primitives rather than reinventing them.
+
+## Command architecture
+
+Each subcommand is split into tiny, single-purpose modules so a change lands
+in one file instead of a large command:
+
+- `<name>.ts` — the command wrapper (implements `EnvGraphCommand`): handles
+  the banner, the spinner, and printing, then re-exports the pieces so
+  existing imports keep working.
+- `<name>-flags.ts` — argument parsing (`--format`, `-o`, `--force`, …).
+- `<name>-run.ts` — the pure entry point (`runScan`, `runCheck`) that returns
+  an outcome. This is what the tests import.
+- `<name>-report.ts` / `<name>-issues.ts` — pure rendering / analysis logic.
+- `<name>-config.ts` / `<name>-example.ts` — generator logic for `create`.
+- `<name>-guard.ts` — shared side-effects-free guards (e.g. the large-directory
+  limit shared by `scan` and `check`).
+
+### Conventions
+
+1. **Logic is pure and testable** — functions take plain args and return
+   `Outcome` objects (`{ exitCode, stdout, stderr, … }`); they never touch
+   `process.stdout`/`stderr`.
+2. **Wrappers are thin** — the `run()` in `scan.ts`/`check.ts` prints the
+   banner, animates the spinner (off-thread via `runInWorker`), and writes the
+   outcome lines. Keep this layer minimal.
+3. **Re-export from the wrapper** — `scan.ts` re-exports `runScan`,
+   `parseScanFlags`, `DIRECTORY_ENTRY_LIMIT` and types so tests and other
+   modules keep a stable import path.
+4. **`ui` theme stays centralized** — `rule()`/`section()`/`banner()` read the
+   current theme from the config, so `ui: "minimal"` and the global
+   `--minimal` flag work everywhere without per-command code.
+5. **Heavy work off-thread** — `offload.ts` runs a pure function in a worker
+   thread so the spinner in the main thread keeps animating.
 
 ## Adding a CLI command
 
-1. Create a module in `src/cli/commands/`, e.g. `mycommand.ts`.
-2. Implement the `EnvGraphCommand` interface:
+Commands follow the split-module pattern (see "Command architecture"). The
+minimal shape is a wrapper plus a pure run function:
+
+1. Create the pure logic, e.g. `src/cli/commands/mycommand-run.ts`:
+
+   ```ts
+   export interface MyOutcome {
+     exitCode: number;
+     stdout: string[];
+     stderr: string[];
+   }
+
+   export function runMyCommand(args: string[], cwd: string): MyOutcome {
+     // pure: no process.* writes — return lines
+     return { exitCode: 0, stdout: ["done"], stderr: [] };
+   }
+   ```
+
+2. Create the wrapper `src/cli/commands/mycommand.ts` implementing
+   `EnvGraphCommand`, then re-export the pure function:
 
    ```ts
    import type { EnvGraphCommand } from "./types.ts";
+   import { banner, rule } from "../ui.ts";
+   import { runMyCommand } from "./mycommand-run.ts";
+
+   export { runMyCommand } from "./mycommand-run.ts";
+   export type { MyOutcome } from "./mycommand-run.ts";
 
    export const myCommand: EnvGraphCommand = {
      name: "mycommand",
      description: "One-line description shown in help.",
      usage: "envgraph mycommand",
-     run(args) {
-       // args are everything after the command name
-       args.includes("--flag")
-       return 0; // process exit code
+     async run(args) {
+       const cwd = process.cwd();
+       const outcome = runMyCommand(args, cwd); // or in a worker for heavy work
+       for (const line of banner("envgraph mycommand")) process.stdout.write(line + "\n");
+       for (const line of outcome.stdout) process.stdout.write(line + "\n");
+       for (const line of outcome.stderr) process.stderr.write(line + "\n");
+       return outcome.exitCode;
      },
    };
    ```
@@ -109,8 +181,10 @@ wrappers.
 3. Register it in `src/cli/commands/index.ts` by appending it to the
    `commands` array. Order determines help-output order; help text updates
    automatically.
-4. Add tests in `tests/cli.test.ts`.
+4. Add tests in `tests/` (e.g. `tests/mycommand.test.ts`) against
+   `runMyCommand` — not the wrapper.
 
-Prefer implementing the heavy lifting as a pure function that returns lines /
-outcomes, with the command's `run()` doing the printing — this keeps it
-unit-testable like `runScan` and `createExample`.
+Keep heavy lifting in pure functions that return lines/outcomes, with the
+command's `run()` only printing — this stays unit-testable like `runScan` and
+`createExample`. For long-running commands use `runInWorker` + `Spinner` to
+keep the UI responsive.
