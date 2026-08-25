@@ -7,8 +7,11 @@ import { formatOutput } from "../../output/index.ts";
 import type { OutputFormat } from "../../output/index.ts";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { isProjectRoot, findProjectRoot, hasConfigKey, getConfig } from "../../config/index.ts";
 import { banner, rule } from "../ui.ts";
+import { Spinner } from "../spinner.ts";
+import { runInWorker } from "../offload.ts";
 
 /**
  * A tree with more than this many directory entries (files + folders,
@@ -267,7 +270,7 @@ export const scanCommand: EnvGraphCommand = {
 	description: "Detect process.env usages in the project's source files.",
 	usage:
 		"envgraph scan [--force] [--format json|table|mermaid] [-o <file>]",
-	run(args: readonly string[]): number {
+	async run(args: readonly string[]): Promise<number> {
 		const cwd = process.cwd();
 
 		// scanning a subfolder gives a partial graph; nudge the user
@@ -289,12 +292,20 @@ export const scanCommand: EnvGraphCommand = {
 			effectiveArgs = [...args, "--format", getConfig().outputFormat];
 		}
 
-		const outcome = runScan(effectiveArgs, cwd, {
-			// Print the large-directory notice live, before parsing starts.
-			notify(line) {
-				process.stdout.write(`${s.warning(line)}\n`);
-			},
-		});
+		const spinner = new Spinner(`scanning ${cwd}`);
+		spinner.start();
+		let outcome: ScanOutcome;
+		try {
+			// heavy parse runs off-thread so the spinner keeps animating
+			outcome = await runInWorker<ScanOutcome>(
+				fileURLToPath(import.meta.url),
+				"runScan",
+				[effectiveArgs, cwd],
+			);
+		} catch {
+			outcome = runScan(effectiveArgs, cwd);
+		}
+		spinner.stop(outcome.exitCode === 0);
 
 		if (!outcome.raw) {
 			for (const line of banner("envgraph scan", `scanning ${cwd}`)) {

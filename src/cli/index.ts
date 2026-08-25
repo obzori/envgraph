@@ -64,7 +64,7 @@ export async function run(argv: readonly string[]): Promise<number> {
 			printCommandHelp(command);
 			return 0;
 		}
-		return command.run(rest);
+		return await command.run(rest);
 	}
 
 	process.stderr.write(

@@ -6,8 +6,11 @@ import { parseEnvFile } from "../../core/env/parser.ts";
 import { countEntries, discoverEnvFiles } from "../../filesystem/index.ts";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { DIRECTORY_ENTRY_LIMIT } from "./scan.ts";
 import { banner, rule } from "../ui.ts";
+import { Spinner } from "../spinner.ts";
+import { runInWorker } from "../offload.ts";
 
 export interface CheckIssue {
 	readonly kind: "missing" | "unused" | "duplicate";
@@ -271,16 +274,25 @@ export const checkCommand: EnvGraphCommand = {
 	name: "check",
 	description: "Compare .env declarations with actual process.env usage.",
 	usage: "envgraph check [--format json] [-o <file>] [--force]",
-	run(args: readonly string[]): number {
-		const outcome = runCheck(args, process.cwd(), {
-			notify(line: string): void {
-				process.stdout.write(`${s.warning(line)}\n`);
-			},
-		});
+	async run(args: readonly string[]): Promise<number> {
+		const cwd = process.cwd();
+		const spinner = new Spinner(`checking ${cwd}`);
+		spinner.start();
+		let outcome: CheckOutcome;
+		try {
+			outcome = await runInWorker<CheckOutcome>(
+				fileURLToPath(import.meta.url),
+				"runCheck",
+				[args, cwd],
+			);
+		} catch {
+			outcome = runCheck(args, cwd);
+		}
+		spinner.stop(outcome.exitCode === 0);
 		if (!outcome.raw) {
 			for (const line of banner(
 				"envgraph check",
-				`checking ${process.cwd()}`,
+				`checking ${cwd}`,
 			)) {
 				process.stdout.write(`${line}\n`);
 			}

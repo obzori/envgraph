@@ -14,7 +14,7 @@ export interface EnvGraphCommand {
 	readonly usage: string;
 	/**
 	 * Execute the command. Receives the arguments after the command name.
-	 * @returns a process exit code (0 on success).
+	 * @returns a process exit code (0 on success); may be async.
 	 */
-	run(args: readonly string[]): number;
+	run(args: readonly string[]): number | Promise<number>;
 }
