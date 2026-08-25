@@ -119,6 +119,27 @@ test("no .env files at all -> everything in use counts as missing", () => {
 	});
 });
 
+test(".env.example is ignored (it is a template, not an environment)", () => {
+	withProject(
+		{
+			".env": "PORT=3000\n",
+			".env.example": "EXTRA_ONLY_IN_TEMPLATE=1\n",
+			"index.js": "const p = process.env.PORT;\n",
+		},
+		(cwd) => {
+			const result = runCheck([], cwd);
+			assert.equal(result.exitCode, 0);
+			const names = (result.issues ?? []).map((i) => i.name);
+			assert.ok(!names.includes("EXTRA_ONLY_IN_TEMPLATE"));
+			const json = runCheck(["--format", "json"], cwd);
+			const parsed = JSON.parse(json.stdout.join("")) as {
+				envFiles: string[];
+			};
+			assert.deepEqual(parsed.envFiles, [".env"]);
+		},
+	);
+});
+
 test("--format json prints machine-readable issues", () => {
 	withProject(
 		{

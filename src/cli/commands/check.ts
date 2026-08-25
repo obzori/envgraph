@@ -131,8 +131,10 @@ export function runCheck(
 		options.notify("⚠ Checking a large directory: this may take a while...");
 	}
 
-	// collect declarations from every .env* file with real line numbers
-	const envFiles = discoverEnvFiles(root);
+	// .env.example is a template for committing, not an actual environment
+	const envFiles = discoverEnvFiles(root).filter(
+		(f) => !f.endsWith(".example"),
+	);
 	const defined = new Map<string, Set<string>>();
 	const duplicates = new Set<string>();
 	for (const rel of envFiles) {
