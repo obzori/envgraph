@@ -166,6 +166,38 @@ test("loadConfig supports JSON config files", async () => {
 	}
 });
 
+// ESM syntax in a .js file of a CommonJS package (the exact case users hit
+// with configs created by older envgraph versions)
+test("loadConfig reads ESM envgraph.config.js inside a CommonJS package", async () => {
+	const cwd = makeProject({
+		"package.json": '{ "type": "commonjs" }',
+		"envgraph.config.js":
+			'export default { example: { keepComments: false } };\n',
+	});
+	try {
+		const config = await loadConfig(cwd);
+		assert.equal(config.example.keepComments, false);
+	} finally {
+		rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
+test("loadConfig supports CommonJS module.exports syntax (.cjs)", async () => {
+	const cwd = makeProject({
+		"package.json": '{ "type": "module" }',
+		"envgraph.config.cjs":
+			'module.exports = { example: { keepComments: false, defaults: { A: "b" } } };\n',
+	});
+	try {
+		const config = await loadConfig(cwd);
+		assert.equal(config.example.keepComments, false);
+		assert.deepEqual(config.example.defaults, { A: "b" });
+		assert.deepEqual(getConfig().example.defaults, { A: "b" });
+	} finally {
+		rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
 test("loadConfig warns on broken config but continues with defaults", async () => {
 	const cwd = makeProject({
 		"envgraph.config.mjs": "throw new Error('boom');",
