@@ -25,7 +25,7 @@ export const scanCommand: EnvGraphCommand = {
 	name: "scan",
 	description: "Detect process.env usages in the project's source files.",
 	usage:
-		"envgraph scan [--force] [--format json|table|mermaid] [-o <file>]",
+		"envgraph scan [--force] [--format classic|json|table|mermaid] [-o <file>]",
 	async run(args: readonly string[]): Promise<number> {
 		const cwd = process.cwd();
 
@@ -52,14 +52,25 @@ export const scanCommand: EnvGraphCommand = {
 		spinner.start();
 		let outcome: ScanOutcome;
 		try {
-			// heavy parse runs off-thread so the spinner keeps animating
+			// heavy parse runs off-thread so the spinner keeps animating;
+			// include/exclude globs come from the config loaded in this thread
+			// (the worker has no config cache of its own)
+			const config = getConfig();
 			outcome = await runInWorker<ScanOutcome>(
 				fileURLToPath(import.meta.url).replace(/scan\.ts$/, "scan-run.ts"),
 				"runScan",
-				[effectiveArgs, cwd],
+				[
+					effectiveArgs,
+					cwd,
+					{ include: config.include, exclude: config.exclude },
+				],
 			);
 		} catch {
-			outcome = runScan(effectiveArgs, cwd);
+			const config = getConfig();
+			outcome = runScan(effectiveArgs, cwd, {
+				include: config.include,
+				exclude: config.exclude,
+			});
 		}
 		spinner.stop(outcome.exitCode === 0);
 

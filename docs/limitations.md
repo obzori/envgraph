@@ -50,8 +50,9 @@ Scanning:
 
 Do not rely on the following:
 
-- **`include` / `exclude` / `outputFormat` in `envgraph.config`** — declared
-  and loaded, but the scanner does not apply them yet.
+- **`include` / `exclude` / `outputFormat` in `envgraph.config`** are applied:
+  globs filter the scanned files, and `outputFormat` sets the default
+  `scan --format` (default `classic`; an explicit `--format` flag wins).
 - **Programmatic analysis API** — `analyzeProject` and `runEnvGraph` return an
   empty result; the working implementation is `scanProject` in
   `src/core/scanner/`. The public exports from `envgraph` are real but the

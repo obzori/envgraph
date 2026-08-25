@@ -1,9 +1,13 @@
 import type { ScanResult } from "../core/scanner/scanner.ts";
 
-export type OutputFormat = "json" | "table" | "mermaid";
+/** All output formats; `classic` is the human-readable default report. */
+export type OutputFormat = "json" | "table" | "mermaid" | "classic";
+
+/** Formats that can be serialized by {@link formatOutput}. */
+export type SerializableOutputFormat = Exclude<OutputFormat, "classic">;
 
 export interface OutputOptions {
-	readonly format: OutputFormat;
+	readonly format: SerializableOutputFormat;
 }
 
 /** Serialize an analysis result into the requested format. */

@@ -24,6 +24,10 @@ export interface ScanRunOptions {
 	directoryEntryLimit?: number;
 	/** Overrides the scanner's large-directory notice threshold (tests). */
 	largeDirectoryThreshold?: number;
+	/** Include globs (from `envgraph.config`); see {@link ScanOptions}. */
+	include?: readonly string[];
+	/** Exclude globs (from `envgraph.config`). */
+	exclude?: readonly string[];
 }
 
 /**
@@ -42,7 +46,9 @@ export function runScan(
 	const stderr: string[] = [];
 
 	if (args.includes("--help") || args.includes("-h")) {
-		stdout.push("Usage: envgraph scan [--force] [--format json|table|mermaid] [-o <file>]");
+		stdout.push(
+			"Usage: envgraph scan [--force] [--format classic|json|table|mermaid] [-o <file>]",
+		);
 		stdout.push("Scan the project for environment variables used via process.env.");
 		return { exitCode: 0, stdout, stderr };
 	}
@@ -61,6 +67,8 @@ export function runScan(
 
 	const scan = scanProject(root, {
 		largeDirectoryThreshold: options?.largeDirectoryThreshold,
+		include: options?.include,
+		exclude: options?.exclude,
 	});
 
 	if (scan.largeDirectoryNotice !== undefined) {
@@ -78,7 +86,8 @@ export function runScan(
 		}
 	}
 
-	if (format !== undefined) {
+	// "classic" (explicitly or via config) is the built-in default report
+	if (format !== undefined && format !== "classic") {
 		const text = formatOutput(stripNotice(scan), { format });
 		if (output !== undefined) {
 			try {

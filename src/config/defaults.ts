@@ -36,7 +36,7 @@ export const DEFAULT_EXAMPLE_CONFIG: ExampleConfig = {
 export const DEFAULT_CONFIG: EnvGraphConfig = {
 	include: ["**/*.{js,ts,jsx,tsx}"],
 	exclude: ["**/node_modules/**", "**/dist/**", "**/build/**"],
-	outputFormat: "json",
+	outputFormat: "classic",
 	ui: "pretty",
 	example: DEFAULT_EXAMPLE_CONFIG,
 };

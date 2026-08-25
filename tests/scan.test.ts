@@ -375,3 +375,88 @@ test("runScan shows a single primary location with ×N for duplicates", () => {
 	);
 });
 
+test("scanProject include restricts which files are scanned", () => {
+	withProject(
+		{
+			"src/app.ts": "process.env.PORT;",
+			"scripts/tool.ts": "process.env.CI_TOKEN;",
+			"lib/util.js": "process.env.HOME;",
+		},
+		(root) => {
+			const result = scanProject(root, { include: ["src/**"] });
+			assert.deepEqual(names(result), ["PORT"]);
+		},
+	);
+});
+
+test("scanProject exclude skips matching files even when included", () => {
+	withProject(
+		{
+			"src/app.ts": "process.env.PORT;",
+			"src/generated/api.ts": "process.env.API_KEY;",
+		},
+		(root) => {
+			const result = scanProject(root, {
+				include: ["src/**/*.ts"],
+				exclude: ["**/generated/**"],
+			});
+			assert.deepEqual(names(result), ["PORT"]);
+		},
+	);
+});
+
+test("include supports brace expansion and ? wildcards", () => {
+	withProject(
+		{
+			"a/app.ts": "process.env.A;",
+			"b/app.js": "process.env.B;",
+			"c/readme.md": "process.env.C;",
+		},
+		(root) => {
+			const result = scanProject(root, {
+				include: ["{a,b}/app.?s"],
+			});
+			assert.deepEqual(names(result), ["A", "B"]);
+		},
+	);
+});
+
+test("runScan applies include/exclude options", () => {
+	withProject(
+		{
+			"src/app.ts": "process.env.PORT;",
+			"other/tool.ts": "process.env.CI;",
+		},
+		(root) => {
+			const outcome = runScan([], root, { include: ["src/**"] });
+			assert.equal(outcome.exitCode, 0);
+			const text = outcome.stdout.join("\n");
+			assert.match(text, /PORT/);
+			assert.doesNotMatch(text, /CI/);
+
+			const excluded = runScan([], root, {
+				include: ["**/*.ts"],
+				exclude: ["src/**"],
+			});
+			assert.equal(excluded.exitCode, 0);
+			assert.match(excluded.stdout.join("\n"), /CI/);
+			assert.doesNotMatch(excluded.stdout.join("\n"), /PORT/);
+		},
+	);
+});
+
+test("empty include list means no restriction", () => {
+	withProject(
+		{
+			"a.ts": "process.env.A;",
+			"b.ts": "process.env.B;",
+		},
+		(root) => {
+			assert.deepEqual(names(scanProject(root, { include: [] })), [
+				"A",
+				"B",
+			]);
+		},
+	);
+});
+

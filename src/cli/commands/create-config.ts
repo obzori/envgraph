@@ -23,8 +23,13 @@ export function buildConfigTemplate(ts: boolean): string {
  *  - ui: "pretty" (default, with rules and banners) or "minimal"
  *    (same layout, without the horizontal rules).
  *  - outputFormat: default output format for \`envgraph scan\`
- *    ("json", "table" or "mermaid"). The --format flag on the command
- *    line overrides this value.
+ *    ("classic" (the human-readable report), "json", "table" or
+ *    "mermaid"). The --format flag on the command line overrides
+ *    this value.
+ *  - include: glob patterns restricting which files are scanned,
+ *    e.g. ["src/**/*.ts"]. Default: every .js/.jsx/.ts/.tsx file.
+ *  - exclude: glob patterns of files to skip even when included,
+ *    e.g. ["**/generated/**"]. Default skips node_modules/dist/build.
  *  - example.keepComments: keep comments from .env in the generated
  *    .env.example (default: true).
  *  - example.defaults: default values written into .env.example instead of

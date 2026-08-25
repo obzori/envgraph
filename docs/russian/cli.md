@@ -40,9 +40,23 @@ export default {
 `defaults` важнее санитайзера чувствительных имён: если ключ указан там, в
 `.env.example` попадает значение из конфига как есть.
 
-Ключ `outputFormat` (`"json"`, `"table"` или `"mermaid"`) задаёт формат
+Ключ `outputFormat` (`"classic"`, `"json"`, `"table"` или `"mermaid"`) задаёт формат
 вывода `envgraph scan` по умолчанию; флаг `--format` в командной строке
-переопределяет его.
+переопределяет его. По умолчанию используется `"classic"` — обычный
+человеческий отчёт.
+
+Ключи `include` и `exclude` принимают glob-паттерны (`*`, `**`, `?`,
+`{a,b}`), ограничивающие набор сканируемых файлов:
+
+```js
+export default {
+  include: ["src/**/*.ts"],
+  exclude: ["**/generated/**"],
+};
+```
+
+По умолчанию сканируются все файлы `.js/.jsx/.ts/.tsx`, кроме
+`node_modules`, `dist` и `build`.
 
 Если конфиг не удаётся загрузить, в stderr печатается предупреждение, а работа
 продолжается с конфигурацией по умолчанию. Поиск поднимается вверх от текущей
@@ -53,7 +67,7 @@ export default {
 ## `envgraph scan`
 
 ```bash
-envgraph scan [--force] [--format json|table|mermaid] [-o <file>]
+envgraph scan [--force] [--format classic|json|table|mermaid] [-o <file>]
 envgraph scan --help   # или -h: печать использования, выход 0
 ```
 
@@ -67,7 +81,7 @@ envgraph scan --help   # или -h: печать использования, в�
 | --- | --- | --- |
 | `--force` | `-f` | Сканировать, даже если каталог слишком большой. |
 | `--help` | `-h` | Печать использования — выход `0`. |
-| `--format <fmt>` | `-F` | Формат вывода: `json`, `table` или `mermaid`. Также `--format=<fmt>`. |
+| `--format <fmt>` | `-F` | Формат вывода: `classic` (человеческий отчёт по умолчанию), `json`, `table` или `mermaid`. Также `--format=<fmt>`. Без флага используется формат из `envgraph.config` (`outputFormat`); по умолчанию — `classic`. |
 | `--output <file>` | `-o` | Записать результат в файл вместо stdout. Также `--output=<file>`. |
 
 ### Форматы вывода

@@ -63,6 +63,13 @@ export interface ScanOptions {
 	readonly onLargeDirectory?: (fileCount: number) => void;
 	/** Overrides the large-directory threshold (used by tests). */
 	readonly largeDirectoryThreshold?: number;
+	/**
+	 * Glob patterns restricting which files are scanned; must-match list.
+	 * Relative POSIX paths, e.g. "src/more/deep" or "src" + "/**" + "/*.ts".
+	 */
+	readonly include?: readonly string[];
+	/** Glob patterns of files to skip, even when they match `include`. */
+	readonly exclude?: readonly string[];
 }
 
 /**
@@ -77,13 +84,17 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 	const threshold =
 		options?.largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
 
-	const files = discoverSourceFiles(root, (count) => {
-		// Fire once, mid-walk, as soon as the threshold is crossed so the
-		// warning appears before the (possibly very long) traversal ends.
-		if (!warned && count > threshold) {
-			warned = true;
-			options?.onLargeDirectory?.(count);
-		}
+	const files = discoverSourceFiles(root, {
+		include: options?.include,
+		exclude: options?.exclude,
+		onFileDiscovered: (count) => {
+			// Fire once, mid-walk, as soon as the threshold is crossed so the
+			// warning appears before the (possibly very long) traversal ends.
+			if (!warned && count > threshold) {
+				warned = true;
+				options?.onLargeDirectory?.(count);
+			}
+		},
 	});
 
 	const largeDirectoryNotice =

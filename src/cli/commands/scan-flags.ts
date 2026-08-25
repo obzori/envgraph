@@ -1,7 +1,12 @@
 import type { OutputFormat } from "../../output/index.ts";
 
-/** All formats accepted by `scan --format`. */
-export const FORMATS: readonly OutputFormat[] = ["json", "table", "mermaid"];
+/** All formats accepted by `scan --format` (including the default report). */
+export const FORMATS: readonly OutputFormat[] = [
+	"classic",
+	"json",
+	"table",
+	"mermaid",
+];
 
 export interface ScanFlags {
 	readonly format?: OutputFormat;

@@ -72,9 +72,14 @@ test("parseScanFlags accepts --format=value and --output value", () => {
 	assert.equal(parseScanFlags(["--output", "out.json"]).flags.output, "out.json");
 	assert.equal(
 		parseScanFlags(["--format=yaml"]).error,
-		'unknown format "yaml". Supported formats: json, table, mermaid.',
+		'unknown format "yaml". Supported formats: classic, json, table, mermaid.',
 	);
 	assert.match(parseScanFlags(["--format"]).error ?? "", /requires a value/);
+});
+
+test("parseScanFlags accepts the classic format", () => {
+	assert.equal(parseScanFlags(["--format=classic"]).flags.format, "classic");
+	assert.equal(parseScanFlags(["-F", "classic"]).flags.format, "classic");
 });
 
 function withFixture(fn: (root: string) => void): void {
@@ -114,4 +119,17 @@ test("runScan -o writes formatted output to a file", () => {
 		assert.match(written, /\["PORT"\]/);
 		assert.match(outcome.stdout.join("\n"), /Written to/);
 	});
+});
+
+test("runScan --format classic prints the human-readable report", () => {
+	withFixture((root) => {
+		const outcome = runScan(["--format=classic"], root);
+		assert.equal(outcome.exitCode, 0);
+		assert.match(outcome.stdout.join("\n"), /PORT\s+src\/index\.ts:2/);
+	});
+});
+
+test("default outputFormat is classic (the built-in default report)", async () => {
+	const { DEFAULT_CONFIG } = await import("../src/config/index.ts");
+	assert.equal(DEFAULT_CONFIG.outputFormat, "classic");
 });
