@@ -147,12 +147,17 @@ export function buildConfigTemplate(ts: boolean): string {
  * envgraph configuration.
  *
  * Recognized keys:
+ *  - outputFormat: default output format for \`envgraph scan\`
+ *    ("json", "table" or "mermaid"). The --format flag on the command
+ *    line overrides this value.
  *  - example.keepComments: keep comments from .env in the generated
  *    .env.example (default: true).
  *  - example.defaults: default values written into .env.example instead of
- *    the sanitized values from .env, e.g. { NODE_ENV: "development" }.
+ *    the sanitized values from .env, e.g.
+ *    { DISCORD_TOKEN: "enter_here_your_discord_token" }.
  */
 export default {
+	// outputFormat: "table",
 	example: {
 		keepComments: true,
 		defaults: {},
@@ -224,7 +229,9 @@ export function createConfig(
 
 	const flags = new Set(args.filter((a) => a.startsWith("-")));
 	const language = detectProjectLanguage(opts.cwd, flags);
-	const fileName = language === "ts" ? "envgraph.config.ts" : "envgraph.config.js";
+	// .mjs so the ESM export works even in CommonJS projects
+	const fileName =
+		language === "ts" ? "envgraph.config.ts" : "envgraph.config.mjs";
 	const content = buildConfigTemplate(language === "ts");
 	const targetPath = path.join(opts.cwd, fileName);
 

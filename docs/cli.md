@@ -20,7 +20,7 @@ General help output:
 On every run envgraph looks for a config file in the current directory and
 loads it automatically:
 
-`envgraph.config.ts`, `envgraph.config.mts`, `envgraph.config.js`,
+`envgraph.config.ts`, `envgraph.config.mts`, `envgraph.config.mjs`,
 `envgraph.config.mjs`, `envgraph.config.cjs`, or `envgraph.config.json`
 (first match wins). Generate one with `envgraph create config`.
 
@@ -214,7 +214,7 @@ Behavior:
 envgraph create config [--force] [--dry-run] [--ts|--js]
 ```
 
-Generates an `envgraph.config.ts` (TypeScript projects) or `envgraph.config.js`
+Generates an `envgraph.config.ts` (TypeScript projects) or `envgraph.config.mjs`
 (JavaScript projects) in the current directory with a commented starter
 template. The project language is detected from `tsconfig.json` or root
 `.ts`/`.mts` files; `--ts` / `--js` override detection.

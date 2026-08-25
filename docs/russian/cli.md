@@ -18,7 +18,7 @@
 При каждом запуске envgraph ищет файл конфигурации в текущей директории и
 загружает его автоматически:
 
-`envgraph.config.ts`, `envgraph.config.mts`, `envgraph.config.js`,
+`envgraph.config.ts`, `envgraph.config.mts`, `envgraph.config.mjs`,
 `envgraph.config.mjs`, `envgraph.config.cjs` или `envgraph.config.json`
 (побеждает первый найденный). Создать его можно командой
 `envgraph create config`.
@@ -39,6 +39,10 @@ export default {
 
 `defaults` важнее санитайзера чувствительных имён: если ключ указан там, в
 `.env.example` попадает значение из конфига как есть.
+
+Ключ `outputFormat` (`"json"`, `"table"` или `"mermaid"`) задаёт формат
+вывода `envgraph scan` по умолчанию; флаг `--format` в командной строке
+переопределяет его.
 
 Если конфиг не удаётся загрузить, в stderr печатается предупреждение, а работа
 продолжается с конфигурацией по умолчанию. Поиск поднимается вверх от текущей
@@ -143,7 +147,7 @@ envgraph create config [--force] [--dry-run] [--ts|--js]
 ```
 
 Создаёт каркас конфигурации: `envgraph.config.ts` для TypeScript-проектов
-или `envgraph.config.js` для остальных. Тип проекта определяется по наличию
+или `envgraph.config.mjs` для остальных. Тип проекта определяется по наличию
 `tsconfig.json` или файлов `.ts`/`.mts` в корне; флаги `--ts` / `--js`
 переопределяют определение. Поведение перезаписи зеркалит
 `create example`.

@@ -63,13 +63,13 @@ function withProject(
 	}
 }
 
-test("create config writes envgraph.config.js in a JS project", () => {
+test("create config writes envgraph.config.mjs in a JS project", () => {
 	withProject({}, (cwd, opts) => {
 		const result = createConfig(["config"], opts);
 		assert.equal(result.exitCode, 0);
 		assert.equal(result.wrote, true);
-		assert.equal(result.fileName, "envgraph.config.js");
-		const file = path.join(cwd, "envgraph.config.js");
+		assert.equal(result.fileName, "envgraph.config.mjs");
+		const file = path.join(cwd, "envgraph.config.mjs");
 		assert.ok(existsSync(file));
 		const content = readFileSync(file, "utf8");
 		assert.match(content, /keepComments:\s*true/);
@@ -116,7 +116,7 @@ test("create config --dry-run does not write anything", () => {
 		const result = createConfig(["config"], { ...opts, dryRun: true });
 		assert.equal(result.exitCode, 0);
 		assert.equal(result.wrote, false);
-		assert.equal(existsSync(path.join(cwd, "envgraph.config.js")), false);
+		assert.equal(existsSync(path.join(cwd, "envgraph.config.mjs")), false);
 	});
 });
 
@@ -125,9 +125,9 @@ test("template is valid default export for both languages", () => {
 	assert.match(buildConfigTemplate(false), /@type \{import\('envgraph'\)/);
 });
 
-test("loadConfig reads envgraph.config.js and merges over defaults", async () => {
+test("loadConfig reads envgraph.config.mjs and merges over defaults", async () => {
 	const cwd = makeProject({
-		"envgraph.config.js":
+		"envgraph.config.mjs":
 			'export default { example: { keepComments: false, defaults: { NODE_ENV: "development" } } };\n',
 	});
 	try {
@@ -136,7 +136,7 @@ test("loadConfig reads envgraph.config.js and merges over defaults", async () =>
 		assert.deepEqual(config.example.defaults, { NODE_ENV: "development" });
 		// untouched keys keep defaults
 		assert.deepEqual(config.include, getConfig().include);
-		assert.equal(findConfigPath(cwd), path.join(cwd, "envgraph.config.js"));
+		assert.equal(findConfigPath(cwd), path.join(cwd, "envgraph.config.mjs"));
 	} finally {
 		rmSync(cwd, { recursive: true, force: true });
 	}
@@ -168,7 +168,7 @@ test("loadConfig supports JSON config files", async () => {
 
 test("loadConfig warns on broken config but continues with defaults", async () => {
 	const cwd = makeProject({
-		"envgraph.config.js": "throw new Error('boom');",
+		"envgraph.config.mjs": "throw new Error('boom');",
 	});
 	try {
 		const warnings: string[] = [];
@@ -232,7 +232,7 @@ test("empty defaults object behaves like no defaults", () => {
 
 test("keepComments: false from config file reaches create example", async () => {
 	const cwd = makeProject({
-		"envgraph.config.js":
+		"envgraph.config.mjs":
 			"export default { example: { keepComments: false } };\n",
 	});
 	try {
@@ -273,15 +273,15 @@ test("findConfigPath searches upward and stops at the project root", () => {
 
 test("nearest config wins over an ancestor one", () => {
 	const root = makeNestedProject({
-		"envgraph.config.js": "export default {};",
-		"packages/app/envgraph.config.js": "export default {};",
+		"envgraph.config.mjs": "export default {};",
+		"packages/app/envgraph.config.mjs": "export default {};",
 		"packages/app/src/index.ts": "",
 	});
 	try {
 		const deep = path.join(root, "packages", "app", "src");
 		assert.equal(
 			findConfigPath(deep),
-			path.join(root, "packages", "app", "envgraph.config.js"),
+			path.join(root, "packages", "app", "envgraph.config.mjs"),
 		);
 	} finally {
 		rmSync(root, { recursive: true, force: true });
@@ -290,7 +290,7 @@ test("nearest config wins over an ancestor one", () => {
 
 test("no config is picked up from outside the project root", () => {
 	const outer = makeProject({
-		"envgraph.config.js": "export default {};",
+		"envgraph.config.mjs": "export default {};",
 		"inner/.git": "",
 	});
 	try {
@@ -303,14 +303,14 @@ test("no config is picked up from outside the project root", () => {
 
 test("loadConfig resolves a config above cwd", async () => {
 	const root = makeNestedProject({
-		"envgraph.config.js": "export default { example: { keepComments: false } };",
+		"envgraph.config.mjs": "export default { example: { keepComments: false } };",
 		"work/index.ts": "",
 	});
 	try {
 		const work = path.join(root, "work");
 		const config = await loadConfig(work);
 		assert.equal(config.example.keepComments, false);
-		assert.equal(getConfigPath(), path.join(root, "envgraph.config.js"));
+		assert.equal(getConfigPath(), path.join(root, "envgraph.config.mjs"));
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}
