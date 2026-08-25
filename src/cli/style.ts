@@ -2,16 +2,25 @@ import chalk from "chalk";
 
 // Colors
 export const s = {
-	brand: (text: string): string => chalk.bold.hex("#A78BFA")(text),
-	heading: (text: string): string => chalk.bold.underline.hex("#E2E8F0")(text),
-	success: (text: string): string => chalk.hex("#4ADE80")(text),
-	warning: (text: string): string => chalk.hex("#FACC15")(text),
-	error: (text: string): string => chalk.hex("#FB7185")(text),
-	name: (text: string): string => chalk.hex("#818CF8")(text),
+	// Brand / primary
+	brand: (text: string): string => chalk.bold.hex("#C4B5FD")(text),
+
+	// Structure
+	heading: (text: string): string => chalk.bold.underline.hex("#EDE9FE")(text),
+
+	// Semantic
+	success: (text: string): string => chalk.hex("#86EFAC")(text),
+	warning: (text: string): string => chalk.hex("#FDE68A")(text),
+	error: (text: string): string => chalk.hex("#FDA4AF")(text),
+
+	// Data
+	name: (text: string): string => chalk.hex("#A78BFA")(text),
 	location: (text: string): string => chalk.hex("#94A3B8")(text),
-	count: (text: string): string => chalk.hex("#C084FC")(text),
+	count: (text: string): string => chalk.hex("#D8B4FE")(text),
+
+	// Secondary
 	dim: (text: string): string => chalk.hex("#64748B")(text),
-	flag: (text: string): string => chalk.hex("#FBBF24")(text),
+	flag: (text: string): string => chalk.hex("#F0ABFC")(text),
 };
 
 
