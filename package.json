@@ -1,6 +1,6 @@
 {
   "name": "envgraph",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "A static analyzer that maps environment variables to the files that use them in JavaScript and TypeScript projects.",
   "type": "module",
   "main": "./dist/index.js",
