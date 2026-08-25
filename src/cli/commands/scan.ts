@@ -310,7 +310,8 @@ export const scanCommand: EnvGraphCommand = {
 			process.stderr.write(`${s.error(line)}\n`);
 		}
 		if (!outcome.raw && outcome.exitCode === 0) {
-			process.stdout.write(`${rule()}\n`);
+			const line = rule();
+			if (line.length > 0) process.stdout.write(`${line}\n`);
 		}
 
 		return outcome.exitCode;

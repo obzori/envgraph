@@ -9,10 +9,15 @@ export interface ExampleConfig {
 	readonly defaults: Readonly<Record<string, string>>;
 }
 
+/** Output decoration level for the CLI. */
+export type UiTheme = "pretty" | "minimal";
+
 export interface EnvGraphConfig {
 	readonly include: readonly string[];
 	readonly exclude: readonly string[];
 	readonly outputFormat: OutputFormat;
+	// "pretty" draws rules and banners; "minimal" omits the rules
+	readonly ui: UiTheme;
 	readonly example: ExampleConfig;
 }
 
@@ -25,6 +30,7 @@ export const DEFAULT_CONFIG: EnvGraphConfig = {
 	include: ["**/*.{js,ts,jsx,tsx}"],
 	exclude: ["**/node_modules/**", "**/dist/**", "**/build/**"],
 	outputFormat: "json",
+	ui: "pretty",
 	example: DEFAULT_EXAMPLE_CONFIG,
 };
 
@@ -32,6 +38,7 @@ export interface EnvGraphUserConfig {
 	readonly include?: readonly string[];
 	readonly exclude?: readonly string[];
 	readonly outputFormat?: OutputFormat;
+	readonly ui?: UiTheme;
 	readonly example?: {
 		readonly keepComments?: boolean;
 		readonly defaults?: Record<string, string>;
@@ -98,6 +105,7 @@ function mergeConfig(user: EnvGraphUserConfig): EnvGraphConfig {
 		include: user.include ?? DEFAULT_CONFIG.include,
 		exclude: user.exclude ?? DEFAULT_CONFIG.exclude,
 		outputFormat: user.outputFormat ?? DEFAULT_CONFIG.outputFormat,
+		ui: user.ui ?? DEFAULT_CONFIG.ui,
 		example: {
 			keepComments:
 				user.example?.keepComments ?? DEFAULT_CONFIG.example.keepComments,

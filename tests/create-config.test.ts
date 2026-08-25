@@ -397,3 +397,27 @@ test("hasConfigKey is false when there is no config file", async () => {
 		rmSync(cwd, { recursive: true, force: true });
 	}
 });
+
+test("ui theme: pretty by default, minimal disables rules", async () => {
+	const { rule } = await import("../src/cli/ui.ts");
+	assert.match(rule(), /─+/); // default is pretty
+
+	const cwd = makeProject({
+		"envgraph.config.json": '{ "ui": "minimal" }',
+	});
+	try {
+		const config = await loadConfig(cwd);
+		assert.equal(config.ui, "minimal");
+		assert.equal(rule(), "");
+	} finally {
+		rmSync(cwd, { recursive: true, force: true });
+	}
+
+	// restore pretty for other tests
+	const clean = makeProject();
+	try {
+		await loadConfig(clean);
+	} finally {
+		rmSync(clean, { recursive: true, force: true });
+	}
+});

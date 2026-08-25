@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { s } from "./style.ts";
+import { getConfig } from "../config/index.ts";
 
 // shared UI primitives: rules, section headers, banners, bullets
 
@@ -22,14 +23,20 @@ export function termWidth(): number {
 
 const RULE_COLOR = "#3B3554";
 
-// thin horizontal line across the terminal
+// thin horizontal line; "" under ui: "minimal"
 export function rule(char = "─"): string {
+	if (getConfig().ui === "minimal") {
+		return "";
+	}
 	return chalk.hex(RULE_COLOR)(char.repeat(termWidth()));
 }
 
-// section header: `◆ Title ───────────────…`
+// section header: `◆ Title ───────────────…`; no fill under ui: "minimal"
 export function section(title: string): string {
 	const label = ` ${title} `;
+	if (getConfig().ui === "minimal") {
+		return `${s.brand(ICONS.dot)}${chalk.bold.hex("#EDE9FE")(label)}`;
+	}
 	const fill = Math.max(termWidth() - 1 - label.length, 3);
 	return `${s.brand(ICONS.dot)}${chalk.bold.hex("#EDE9FE")(label)}${chalk.hex(RULE_COLOR)("─".repeat(fill))}`;
 }
@@ -42,7 +49,10 @@ export function banner(title: string, subtitle?: string): string[] {
 	if (subtitle !== undefined && subtitle.length > 0) {
 		lines.push(`  ${s.dim(subtitle)}`);
 	}
-	lines.push(rule());
+	const line = rule();
+	if (line.length > 0) {
+		lines.push(line);
+	}
 	return lines;
 }
 

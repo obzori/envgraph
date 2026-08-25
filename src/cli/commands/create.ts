@@ -148,6 +148,8 @@ export function buildConfigTemplate(ts: boolean): string {
  * envgraph configuration.
  *
  * Recognized keys:
+ *  - ui: "pretty" (default, with rules and banners) or "minimal"
+ *    (same layout, without the horizontal rules).
  *  - outputFormat: default output format for \`envgraph scan\`
  *    ("json", "table" or "mermaid"). The --format flag on the command
  *    line overrides this value.
@@ -158,6 +160,7 @@ export function buildConfigTemplate(ts: boolean): string {
  *    { DISCORD_TOKEN: "enter_here_your_discord_token" }.
  */
 export default {
+	// ui: "pretty",
 	// outputFormat: "table",
 	example: {
 		keepComments: true,
@@ -291,7 +294,8 @@ export const createCommand: EnvGraphCommand = {
 			process.stdout.write(`${stylizeLine(line)}\n`);
 		}
 		if (outcome.wrote) {
-			process.stdout.write(`${rule()}\n`);
+			const line = rule();
+			if (line.length > 0) process.stdout.write(`${line}\n`);
 		}
 		for (const line of outcome.stderr) {
 			process.stderr.write(`${s.error(line)}\n`);

@@ -289,7 +289,8 @@ export const checkCommand: EnvGraphCommand = {
 			process.stdout.write(`${line}\n`);
 		}
 		if (!outcome.raw) {
-			process.stdout.write(`${rule()}\n`);
+			const line = rule();
+			if (line.length > 0) process.stdout.write(`${line}\n`);
 		}
 		for (const line of outcome.stderr) {
 			process.stderr.write(`${s.error(line)}\n`);
