@@ -53,6 +53,28 @@ test("mermaid output is a flowchart with nodes and edges", () => {
 	assert.match(text, /n\d+ --- n\d+/);
 });
 
+test("mermaid output escapes double quotes and angle brackets in labels", () => {
+	const result: ScanResult = {
+		variables: [
+			{
+				name: 'FOO"BAR',
+				locations: [{ file: "src/a.ts", line: 1, column: 1 }],
+			},
+			{
+				name: "A<B>C",
+				locations: [{ file: "src/b.ts", line: 5, column: 1 }],
+			},
+		],
+		loaders: [],
+		envFiles: [],
+		errors: [],
+		scannedFiles: 2,
+	};
+	const text = formatOutput(result, { format: "mermaid" });
+	assert.match(text, /\["FOO#quot;BAR"\]/);
+	assert.match(text, /\["A#lt;B#gt;C"\]/);
+});
+
 test("empty result still produces valid output in every format", () => {
 	const empty: ScanResult = { variables: [], loaders: [], envFiles: [], errors: [], scannedFiles: 0 };
 	for (const format of ["json", "table", "mermaid"] as const) {

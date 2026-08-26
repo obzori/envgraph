@@ -87,6 +87,15 @@ function formatTable(data: ScanResult): string {
 	return lines.join("\n");
 }
 
+// Escape characters that are special inside Mermaid `["..."]` node labels.
+function escapeMermaidLabel(text: string): string {
+	return text
+		.replace(/\\/g, "\\\\")
+		.replace(/"/g, '#quot;')
+		.replace(/</g, "#lt;")
+		.replace(/>/g, "#gt;");
+}
+
 // mermaid flowchart: .env files feed loaders, loaders feed usage sites
 function formatMermaid(data: ScanResult): string {
 	const lines: string[] = ["flowchart LR"];
@@ -101,7 +110,7 @@ function formatMermaid(data: ScanResult): string {
 		const id = `n${counter++}`;
 		nodeId.set(label, id);
 		// Quote labels so special characters (`:` in `file:line`) are safe.
-		lines.push(`    ${id}["${label}"]`);
+		lines.push(`    ${id}["${escapeMermaidLabel(label)}"]`);
 		return id;
 	}
 
