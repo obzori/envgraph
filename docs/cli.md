@@ -13,15 +13,13 @@ success; anything else is an error.
 - Unknown commands print `envgraph: unknown command "<name>".` followed by the
   general help — exit `1`.
 
-General help output:
-
 ### Configuration file
 
 On every run envgraph looks for a config file in the current directory and
 loads it automatically:
 
 `envgraph.config.ts`, `envgraph.config.mts`, `envgraph.config.mjs`,
-`envgraph.config.mjs`, `envgraph.config.cjs`, or `envgraph.config.json`
+`envgraph.config.cjs`, or `envgraph.config.json`
 (first match wins). Generate one with `envgraph create config`.
 
 Recognized keys (all optional, merged over defaults):
@@ -45,28 +43,6 @@ continues with the default configuration. The search walks upward from the
 current directory and stops at the project root (`.git`, `package.json`, …),
 so running from a subfolder still finds it; envgraph prints a hint when the
 loaded config lies above the working directory.
-
-## `envgraph scan`
-
-
-```text
-envgraph — map environment variables to the files that use them.
-
-Usage:
-  envgraph [command] [options]
-
-Commands:
-  envgraph   Check that envgraph is installed and working.
-  create     Generate scaffold files (e.g. .env.example from .env).
-  check      Compare .env declarations with actual process.env usage.
-  scan       Detect process.env usages in the project's source files.
-  help       Show usage information.
-  version    Print the installed version.
-
-Options:
-  -h, --help     Show this help message.
-  -v, --version  Print the installed version.
-```
 
 ## `envgraph scan`
 

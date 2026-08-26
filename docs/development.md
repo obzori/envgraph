@@ -31,16 +31,16 @@ dist/                   # build output (published to npm)
 
 Requirements:
 
-- Node.js **>= 23.6.0** (the codebase uses native TypeScript type-stripping —
-  no transpiler is needed to run `src/*.ts` directly).
+- Node.js **>= 22** (for development, native TypeScript type-stripping is
+  used to run `src/*.ts` directly).
 - npm.
 
 ```bash
 npm install
 ```
 
-There are no runtime dependencies; dev dependencies are `typescript` and
-`@types/node` only.
+Runtime dependencies: `chalk` (terminal colors) and `typescript` (AST parsing).
+Dev dependencies: `@types/node`.
 
 ## npm scripts
 

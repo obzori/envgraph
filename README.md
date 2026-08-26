@@ -25,9 +25,8 @@
   </p>
 
   <p>
-    <img src="https://img.shields.io/node/v/envgraph?style=flat-square&label=Node.js&color=5FA04E" alt="Node.js >= 23.6" />
+    <img src="https://img.shields.io/node/v/envgraph?style=flat-square&label=Node.js&color=5FA04E" alt="Node.js >= 22" />
     <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5.x" />
-    <img src="https://img.shields.io/badge/runtime%20dependency-chalk-18181b?style=flat-square&logo=npm&logoColor=white" alt="Runtime dependency: chalk" />
   </p>
 
   <sub>
@@ -52,13 +51,14 @@ files with the TypeScript compiler API — not regex. It detects both variable
 (`dotenv.config()`, `process.loadEnvFile(".env")`), plus the `.env*` files in
 the project. Values are never read or printed.
 
-It runs on Node.js only, has zero runtime dependencies, and never executes
-your code.
+It runs on Node.js only and never executes your code.
 
 ## Features
 
-- **Usage detection** — `process.env.NAME` (dot) and `process.env["NAME"]`
-  (bracket with string literal), grouped per variable with exact locations.
+- **Multi-runtime usage detection** — `process.env` (Node.js),
+  `import.meta.env` (Vite), `Bun.env` (Bun), and `Deno.env.get()` (Deno),
+  including dot notation, bracket notation with string literals, and
+  destructuring. Grouped per variable with exact locations.
 - **Loader detection** — `import "dotenv/config"`, `dotenv.config()` (with
   static `path` options), and Node's native `process.loadEnvFile()`.
 - **`.env` file discovery** — `.env`, `.env.local`, `.env.production`, etc.
@@ -69,12 +69,13 @@ your code.
 - **Project configuration** — `envgraph.config.{js,mjs,cjs,ts,mts,json}` is
   discovered automatically in the project root; run from any subfolder and
   the config is still found.
+- **Include/exclude globs** — narrow the set of scanned files via config.
 - **Safe static analysis** — exact locations only; `.env` values never appear
-  in output; no code execution, no network access.
+  in output; no code execution, no network access, no telemetry.
 
 ## Requirements
 
-- Node.js **>= 23.6.0**
+- Node.js **>= 22**
 
 ## Installation
 
@@ -163,7 +164,7 @@ from a subfolder, it is found in the project root and a hint is printed.
 | `envgraph scan` | Detect `process.env` usages in the project's source files. |
 | `envgraph check` | Compare `.env` declarations with actual usage; exit `1` on missing variables. |
 | `envgraph create example [--force] [--dry-run]` | Generate `.env.example` from `.env`. |
-| `envgraph create config [--force] [--dry-run] [--ts\\|--js]` | Generate an `envgraph.config.ts/js` scaffold. |
+| `envgraph create config [--force] [--dry-run] [--ts\|--js]` | Generate an `envgraph.config.ts/js` scaffold. |
 | `envgraph help` | Show usage information. |
 | `envgraph version` | Print the installed version. |
 
@@ -182,8 +183,7 @@ Full details in the [CLI Reference](docs/cli.md).
 
 ## Development
 
-Requires Node.js >= 23.6.0. No runtime dependencies; dev tooling is
-`typescript` and `@types/node`.
+Requires Node.js >= 22. Build tooling is `typescript` and `@types/node`.
 
 ```bash
 git clone https://github.com/obzori/envgraph.git

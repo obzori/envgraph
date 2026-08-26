@@ -19,7 +19,7 @@
 загружает его автоматически:
 
 `envgraph.config.ts`, `envgraph.config.mts`, `envgraph.config.mjs`,
-`envgraph.config.mjs`, `envgraph.config.cjs` или `envgraph.config.json`
+`envgraph.config.cjs` или `envgraph.config.json`
 (побеждает первый найденный). Создать его можно командой
 `envgraph create config`.
 
@@ -91,6 +91,14 @@ envgraph scan --help   # или -h: печать использования, в�
   `envFiles` и `errors`;
 - **`table`**: текстовая таблица без ANSI-цветов;
 - **`mermaid`**: граф `flowchart LR`, где файлы `.env*` питают лоадеры, а
+  переменные связаны с местами использования.
+
+Примеры:
+
+```bash
+envgraph scan --format json > report.json
+envgraph scan --format mermaid -o docs/env-graph.mmd
+```
 
 ### Защита от больших каталогов
 
@@ -189,12 +197,3 @@ envgraph create config [--force] [--dry-run] [--ts|--js]
 - `envgraph help` — общая справка, эквивалент `--help`, выход `0`.
 - `envgraph version` — `envgraph v<версия>` из `package.json`, эквивалент
   `--version`, выход `0`.
-
-  переменные связаны с местами использования.
-
-Примеры:
-
-```bash
-envgraph scan --format json > report.json
-envgraph scan --format mermaid -o docs/env-graph.mmd
-```

@@ -18,6 +18,9 @@ read or printed — only names, paths, and line numbers.
 - Skips these directories entirely: `node_modules`, `.git`, `dist`, `build`.
 - Unreadable directories are silently skipped.
 - Files are processed in sorted path order (forward slashes in reported paths).
+- The `include` and `exclude` config keys accept glob patterns (`*`, `**`, `?`,
+  `{a,b}`) to narrow the set of scanned files. Without them, all matching
+  extensions are scanned.
 
 ## Supported syntax
 
@@ -26,24 +29,36 @@ so only genuine accesses are reported. Every file is parsed as TypeScript
 (`ScriptKind.TS` with the latest language target), which also parses
 JavaScript.
 
-Detected forms:
+### Environment variable access
 
-| Form | Example |
-| --- | --- |
-| Dot notation | `process.env.PORT` |
-| Bracket notation with a string literal | `process.env["PORT"]`, `process.env['PORT']` |
+| Form | Example | Runtime |
+| --- | --- | --- |
+| Dot notation | `process.env.PORT` | Node.js |
+| Bracket notation with a string literal | `process.env["PORT"]` | Node.js |
+| Destructuring | `const { PORT } = process.env` | Node.js |
+| Destructuring with rename | `const { PORT: port } = process.env` | Node.js |
+| Dot notation | `import.meta.env.MODE` | Vite |
+| Bracket notation with a string literal | `import.meta.env["MODE"]` | Vite |
+| Destructuring | `const { MODE } = import.meta.env` | Vite |
+| Dot notation | `Bun.env.PORT` | Bun |
+| Bracket notation with a string literal | `Bun.env["PORT"]` | Bun |
+| Destructuring | `const { PORT } = Bun.env` | Bun |
+| `Deno.env.get("NAME")` with a string literal | `Deno.env.get("PORT")` | Deno |
 
-Only exact `process.env` receiver expressions match. Not detected:
+Rest elements (`...rest`) and computed/dynamic keys in destructuring are
+skipped — only statically resolvable names are reported.
+
+Not detected:
 
 - Aliases, e.g. `const e = process.env; e.PORT`.
-- Destructuring, e.g. `const { PORT } = process.env`.
 - Dynamic bracket access, e.g. `process.env[name]`.
-- Other globals such as `import.meta.env`.
+- `Deno.env.get(variable)` where the argument is not a string literal.
 
 ## Environment loader detection
 
 Detection is AST-based, so string literals (`"dotenv.config()"`) and comments
-never match.
+never match. Local modules or variables named `dotenv` that shadow the npm
+package are correctly ignored.
 
 Recognized dotenv forms:
 
@@ -98,7 +113,7 @@ two extra blocks (printed only when non-empty):
 
 ```text
 1 usages · 1 variables
-2 env loaders
+1 env loaders
 
 PORT  src/config.ts:1
 

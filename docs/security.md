@@ -13,8 +13,9 @@ and guarantees.
 - During `scan`: `.env*` **filenames only** (`.env`, `.env.local`, …) — file
   contents are never read and values never enter the output.
 
-### NO NETWORK ACCESS! NO TELEMETRY!
-*go suck, microsoft*
+### No network access, no telemetry
+
+envgraph never makes network requests and collects no telemetry data.
 
 ## What envgraph writes
 
@@ -24,9 +25,9 @@ and guarantees.
 
 ## What envgraph never executes
 
-Your project's code is never executed or evaluated. Source files are only
+Code of your project is never executed or evaluated. Source files are only
 parsed with the TypeScript compiler API; `.env` files are only parsed
-line-by-line. There are zero runtime dependencies.
+line-by-line.
 
 ## The secret-name heuristic
 
