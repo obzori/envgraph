@@ -70,11 +70,6 @@ export const scanCommand: EnvGraphCommand = {
 		}
 		spinner.stop(outcome.exitCode === 0);
 
-		if (!outcome.raw) {
-			for (const line of banner("envgraph scan", `scanning ${cwd}`)) {
-				process.stdout.write(`${line}\n`);
-			}
-		}
 		for (const line of outcome.stdout) {
 			process.stdout.write(
 				`${outcome.raw ? line : stylizeLine(line)}\n`,

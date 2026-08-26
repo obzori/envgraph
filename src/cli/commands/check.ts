@@ -33,11 +33,6 @@ export const checkCommand: EnvGraphCommand = {
 		}
 		spinner.stop(outcome.exitCode === 0);
 
-		if (!outcome.raw) {
-			for (const line of banner("envgraph check", `checking ${cwd}`)) {
-				process.stdout.write(`${line}\n`);
-			}
-		}
 		for (const line of outcome.stdout) {
 			process.stdout.write(`${line}\n`);
 		}
