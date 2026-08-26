@@ -7,6 +7,7 @@ import type { EnvLoader, EnvSource } from "./ast.ts";
 export interface EnvVarLocation {
 	readonly file: string;
 	readonly line: number;
+	readonly column: number;
 	readonly source?: EnvSource;
 }
 
@@ -25,6 +26,8 @@ export interface ScanResult {
 	readonly envFiles: readonly string[];
 	// files that could not be parsed; never contains source contents
 	readonly errors: readonly ScanError[];
+	// number of files read and parsed successfully
+	readonly scannedFiles: number;
 	// set when the directory exceeded LARGE_DIRECTORY_FILE_THRESHOLD
 	readonly largeDirectoryNotice?: { readonly fileCount: number };
 }
@@ -52,6 +55,7 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 	const byName = new Map<string, EnvVarLocation[]>();
 	const loaders: (EnvLoader & { readonly file: string })[] = [];
 	const errors: ScanError[] = [];
+	let scanned = 0;
 
 	let warned = false;
 	const threshold =
@@ -102,12 +106,14 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 			});
 			continue;
 		}
+		scanned++;
 
 		for (const access of accesses) {
 			const locations = byName.get(access.name);
 			const location = {
 				file,
 				line: access.line,
+				column: access.column,
 				...(access.source !== undefined && access.source !== "process"
 					? { source: access.source }
 					: {}),
@@ -130,5 +136,5 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 
 	const envFiles = discoverEnvFiles(root);
 
-	return { variables, loaders, envFiles, errors, largeDirectoryNotice };
+	return { variables, loaders, envFiles, errors, scannedFiles: scanned, largeDirectoryNotice };
 }

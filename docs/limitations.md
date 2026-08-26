@@ -50,14 +50,12 @@ Scanning:
 
 Do not rely on the following:
 
-- **`include` / `exclude` / `outputFormat` in `envgraph.config`** are applied:
-  globs filter the scanned files, and `outputFormat` sets the default
-  `scan --format` (default `classic`; an explicit `--format` flag wins).
-- **Programmatic analysis API** — `analyzeProject` and `runEnvGraph` return an
-  empty result; the working implementation is `scanProject` in
-  `src/core/scanner/`. The public exports from `envgraph` are real but the
-  orchestration layer is not implemented yet.
-- **Column numbers** — declared in the analysis types but not produced by the
-  scanner.
+- **Loader graph** — usage and loading are detected separately, but not yet
+  correlated into a dependency graph linking a variable to the `.env` file
+  that defines it.
+- **`analyzeProject`/`runEnvGraph`** exist and delegate to `scanProject`, but
+  no further orchestration (formatting/output) is wired up yet.
+
+There is no watch mode and no plugin system at this time.
 
 There is no watch mode and no plugin system at this time.

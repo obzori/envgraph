@@ -6,6 +6,7 @@ export type EnvSource = "process" | "vite" | "bun" | "deno";
 export interface EnvAccess {
 	readonly name: string;
 	readonly line: number;
+	readonly column: number;
 	readonly source?: EnvSource;
 }
 
@@ -29,6 +30,11 @@ function isProcessEnv(node: ts.Expression): boolean {
 
 function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
 	return sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+}
+
+// 1-based column of the node start on its line
+function columnOf(sourceFile: ts.SourceFile, node: ts.Node): number {
+	return sourceFile.getLineAndCharacterOfPosition(node.getStart()).character + 1;
 }
 
 function envObjectSource(node: ts.Expression): EnvSource | undefined {
@@ -278,6 +284,7 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 				accesses.push({
 					name: node.name.text,
 					line: lineOf(sourceFile, node),
+					column: columnOf(sourceFile, node),
 					source,
 				});
 			}
@@ -298,6 +305,7 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 				accesses.push({
 					name: node.argumentExpression.text,
 					line: lineOf(sourceFile, node),
+					column: columnOf(sourceFile, node),
 					source,
 				});
 			}
@@ -333,6 +341,7 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 						accesses.push({
 							name,
 							line: lineOf(sourceFile, element),
+							column: columnOf(sourceFile, element),
 							source,
 						});
 					}
@@ -356,6 +365,7 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 					accesses.push({
 						name: first.text,
 						line: lineOf(sourceFile, node),
+						column: columnOf(sourceFile, node),
 						source: "deno",
 					});
 				}

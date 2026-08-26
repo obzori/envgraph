@@ -12,8 +12,11 @@ export function createContext(cwd: string, config: EnvGraphConfig): EnvGraphCont
 	return { cwd, config };
 }
 
-// orchestrate a full run: discovery -> analysis -> output; placeholder only
+// orchestrate a full run: discovery -> analysis; output formatting stays a
+// CLI concern. Uses the config's include/exclude globs.
 export async function runEnvGraph(context: EnvGraphContext): Promise<AnalysisResult> {
-	void context;
-	return analyzeProject(context.cwd);
+	return analyzeProject(context.cwd, {
+		include: context.config.include,
+		exclude: context.config.exclude,
+	});
 }

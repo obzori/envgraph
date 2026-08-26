@@ -1,4 +1,4 @@
-import { test } from "node:test";
+﻿import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -90,10 +90,10 @@ test("duplicate usages are recorded as one variable with all locations", () => {
 			assert.deepEqual(
 				result.variables[0]?.locations,
 				[
-					{ file: "src/config.ts", line: 1 },
-					{ file: "src/server.ts", line: 1 },
-					{ file: "src/server.ts", line: 2 },
-					{ file: "src/server.ts", line: 3 },
+					{ file: "src/config.ts", line: 1, column: 1 },
+					{ file: "src/server.ts", line: 1, column: 1 },
+					{ file: "src/server.ts", line: 2, column: 1 },
+					{ file: "src/server.ts", line: 3, column: 1 },
 				],
 			);
 		},
@@ -109,9 +109,9 @@ test("reports correct file paths and line numbers across files", () => {
 		(root) => {
 			const result = scanProject(root);
 			const db = result.variables.find((v) => v.name === "DATABASE_URL");
-			assert.deepEqual(db?.locations, [{ file: "src/db.ts", line: 2 }]);
+			assert.deepEqual(db?.locations, [{ file: "src/db.ts", line: 2, column: 12 }]);
 			const home = result.variables.find((v) => v.name === "HOME");
-			assert.deepEqual(home?.locations, [{ file: "index.js", line: 1 }]);
+			assert.deepEqual(home?.locations, [{ file: "index.js", line: 1, column: 1 }]);
 		},
 	);
 });
@@ -197,7 +197,6 @@ test("dynamic bracket access is ignored (variable and template literal)", () => 
 	);
 	assert.equal(accesses.length, 0);
 });
-
 
 test("no matches produces a successful, empty result", () => {
 	withProject({ "src/app.ts": "const x = 1;\n" }, (root) => {
@@ -459,4 +458,3 @@ test("empty include list means no restriction", () => {
 		},
 	);
 });
-

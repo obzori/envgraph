@@ -13,18 +13,19 @@ function makeResult(): ScanResult {
 			{
 				name: "PORT",
 				locations: [
-					{ file: "src/index.ts", line: 3 },
-					{ file: "src/server.ts", line: 7 },
+					{ file: "src/index.ts", line: 3, column: 1 },
+					{ file: "src/server.ts", line: 7, column: 1 },
 				],
 			},
 			{
 				name: "DATABASE_URL",
-				locations: [{ file: "src/db.ts", line: 1 }],
+				locations: [{ file: "src/db.ts", line: 1, column: 1 }],
 			},
 		],
 		loaders: [{ kind: "dotenv", line: 1, envFile: ".env", file: "src/index.ts" }],
 		envFiles: [".env", ".env.local"],
 		errors: [],
+		scannedFiles: 3,
 	};
 }
 
@@ -53,7 +54,7 @@ test("mermaid output is a flowchart with nodes and edges", () => {
 });
 
 test("empty result still produces valid output in every format", () => {
-	const empty: ScanResult = { variables: [], loaders: [], envFiles: [], errors: [] };
+	const empty: ScanResult = { variables: [], loaders: [], envFiles: [], errors: [], scannedFiles: 0 };
 	for (const format of ["json", "table", "mermaid"] as const) {
 		const text = formatOutput(empty, { format });
 		if (format === "json") {
