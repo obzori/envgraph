@@ -2,7 +2,7 @@ import type { EnvGraphCommand } from "./types.ts";
 import { s, stylizeLine } from "../style.ts";
 import { fileURLToPath } from "node:url";
 import { isProjectRoot, findProjectRoot, hasConfigKey, getConfig } from "../../config/index.ts";
-import { banner, rule } from "../ui.ts";
+import { rule } from "../ui.ts";
 import { Spinner } from "../spinner.ts";
 import { runInWorker } from "../offload.ts";
 import { runScan } from "./scan-run.ts";

@@ -1,7 +1,7 @@
 import type { EnvGraphCommand } from "./types.ts";
 import { s } from "../style.ts";
 import { fileURLToPath } from "node:url";
-import { banner, rule } from "../ui.ts";
+import { rule } from "../ui.ts";
 import { Spinner } from "../spinner.ts";
 import { runInWorker } from "../offload.ts";
 import { runCheck } from "./check-run.ts";
