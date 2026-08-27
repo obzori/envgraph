@@ -29,6 +29,32 @@ Code of your project is never executed or evaluated. Source files are only
 parsed with the TypeScript compiler API; `.env` files are only parsed
 line-by-line.
 
+## The config file exception
+
+There is exactly one exception: your `envgraph.config.{js,ts,mjs,cjs}` is a
+**JavaScript/TypeScript file and is executed** to read its exports. This is the
+same model as ESLint (`eslint.config.js`), Prettier (`prettier.config.js`), or
+any other JS tool — a config file sync with the tool format must be code.
+
+This means:
+
+- The config is trusted input. Whoever can write `envgraph.config.js` in a
+  project can already write to `package.json` (whose lifecycle scripts run on
+  every `npm install`), any source file, or `.npmrc` — so the config file adds
+  no achievable attack vector on your own machine.
+- Constructing an `envgraph.config.*` that moves data off the machine would
+  require the attacker to have write access to the repository, which already
+  implies full compromise. envgraph itself never opens a network connection.
+- For the CJS-in-ESM case the config source is evaluated directly (via a
+  `data:` import and a `vm` fallback). A `vm` context is **not** a security
+  boundary — it is only an evaluation mechanism, and it must not be treated
+  as one.
+
+Where you run envgraph on repositories you do not trust (e.g. scanning an
+unvetted clone in CI), the config executes too. The safe pattern is the same
+as for any external code: run it in a disposable, isolated environment
+(container / ephemeral CI runner), do not run it on your working machine.
+
 ## The secret-name heuristic
 
 Sensitive variables are detected purely by **name**: a variable whose name

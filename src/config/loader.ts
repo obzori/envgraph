@@ -104,8 +104,16 @@ function isCommonJsJsFile(configPath: string): boolean {
 	return packageType(path.dirname(configPath)) !== "module";
 }
 
-// fallback loader: evaluate the source directly, as ESM first (via a data
-// URL, so package.json "type" is irrelevant), then as CommonJS
+// Fallback loader: evaluate the config source directly. Two steps are needed
+// because a `.js` file inside a `"type": "module"` package is treated as ESM
+// by Node, while the user may have written CommonJS `module.exports = {...}`:
+//   1. Try an ESM data-URL import first (a data URL has no package context,
+//      so the nearest package.json "type" cannot force a wrong interpretation).
+//   2. If that fails (CJS syntax), fall back to a `vm` evaluation.
+// The `vm` context is deliberately NOT a security boundary: the config is
+// trusted user code, executed exactly like eslint.config.js would be. If
+// envgraph runs against an untrusted repository, isolate the whole run, not
+// the config loader.
 async function loadFromSource(source: string): Promise<EnvGraphUserConfig> {
 	try {
 		const esmUrl = `data:text/javascript;base64,${Buffer.from(source, "utf8").toString("base64")}`;
