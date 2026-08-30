@@ -1,11 +1,9 @@
 import type { EnvGraphCommand } from "./types.ts";
 import { s, stylizeLine } from "../style.ts";
-import { fileURLToPath } from "node:url";
 import { isProjectRoot, findProjectRoot, hasConfigKey, getConfig } from "../../config/index.ts";
 import { rule } from "../ui.ts";
 import { Spinner } from "../spinner.ts";
-import { runInWorker } from "../offload.ts";
-import { runScan } from "./scan-run.ts";
+import { runScan, runScanParallel } from "./scan-run.ts";
 import type { ScanOutcome } from "./scan-run.ts";
 
 // Re-exports so existing imports (`runScan`, `parseScanFlags`,
@@ -48,20 +46,19 @@ export const scanCommand: EnvGraphCommand = {
 		spinner.start();
 		let outcome: ScanOutcome;
 		try {
-			// heavy parse runs off-thread so the spinner keeps animating;
+			// heavy parse runs in a worker pool (off the event loop), so the
+			// spinner keeps animating while the pool scans in parallel;
 			// include/exclude globs come from the config loaded in this thread
-			// (the worker has no config cache of its own)
+			// (the pool workers have no config cache of their own)
 			const config = getConfig();
-			outcome = await runInWorker<ScanOutcome>(
-				fileURLToPath(import.meta.url).replace(/scan\.ts$/, "scan-run.ts"),
-				"runScan",
-				[
-					effectiveArgs,
-					cwd,
-					{ include: config.include, exclude: config.exclude },
-				],
-			);
+			const scanOptions = {
+				include: config.include,
+				exclude: config.exclude,
+			};
+			outcome = await runScanParallel(effectiveArgs, cwd, scanOptions);
 		} catch {
+			// the pool is unavailable (e.g. worker_threads restricted) —
+			// fall back to the synchronous path, still a correct result
 			const config = getConfig();
 			outcome = runScan(effectiveArgs, cwd, {
 				include: config.include,

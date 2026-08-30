@@ -121,8 +121,8 @@ in one file instead of a large command:
    `Outcome` objects (`{ exitCode, stdout, stderr, … }`); they never touch
    `process.stdout`/`stderr`.
 2. **Wrappers are thin** — the `run()` in `scan.ts`/`check.ts` prints the
-   banner, animates the spinner (off-thread via `runInWorker`), and writes the
-   outcome lines. Keep this layer minimal.
+   banner, animates the spinner (off-thread), and writes the outcome lines.
+   Keep this layer minimal.
 3. **Re-export from the wrapper** — `scan.ts` re-exports `runScan`,
    `parseScanFlags`, `DIRECTORY_ENTRY_LIMIT` and types so tests and other
    modules keep a stable import path.
@@ -130,7 +130,9 @@ in one file instead of a large command:
    current theme from the config, so `ui: "minimal"` and the global
    `--minimal` flag work everywhere without per-command code.
 5. **Heavy work off-thread** — `offload.ts` runs a pure function in a worker
-   thread so the spinner in the main thread keeps animating.
+   thread so the spinner in the main thread keeps animating; `scan` additionally
+   splits its per-file parse across a worker pool (`core/scanner/parallel.ts`),
+   which parallelizes the CPU-bound analysis instead of serializing it.
 
 ## Adding a CLI command
 
