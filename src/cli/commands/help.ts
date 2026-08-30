@@ -1,11 +1,11 @@
 import chalk from "chalk";
 import { s } from "../style.ts";
 import { banner, rule, section } from "../ui.ts";
-import type { EnvGraphCommand } from "./types.ts";
+import type { CommandMeta } from "./types.ts";
 import { readVersion } from "./version.ts";
 
 // general help for all registered commands
-export function printHelp(commands: readonly EnvGraphCommand[]): void {
+export function printHelp(commands: readonly CommandMeta[]): void {
 	const lines: string[] = [];
 	lines.push(...banner(`envgraph ${chalk.dim("v" + readVersion())}`, "map environment variables to the files that use them"));
 	lines.push("");
@@ -28,7 +28,7 @@ export function printHelp(commands: readonly EnvGraphCommand[]): void {
 }
 
 // per-command help; dispatched automatically for -h/--help
-export function printCommandHelp(command: EnvGraphCommand): void {
+export function printCommandHelp(command: CommandMeta): void {
 	const lines: string[] = [];
 	lines.push(...banner(`${command.name}`, command.description));
 	lines.push("");

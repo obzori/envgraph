@@ -1,4 +1,17 @@
-import ts from "typescript";
+import { createRequire } from "node:module";
+import type * as TypeScript from "typescript";
+
+// TypeScript is loaded on first parse. Importing the module costs ~200 ms,
+// which the CLI shell must not pay for commands that never scan (--help,
+// --version, create). The scanner is synchronous (it also runs inside worker
+// threads), so the module is loaded synchronously via createRequire the
+// first time analyzeSource runs — the worker pays the cost, not the shell.
+const requireCjs = createRequire(import.meta.url);
+let ts: typeof TypeScript;
+
+function loadTypeScript(): void {
+	ts ??= requireCjs("typescript") as typeof TypeScript;
+}
 
 // runtime the variable was read from
 export type EnvSource = "process" | "vite" | "bun" | "deno";
@@ -19,7 +32,7 @@ export interface EnvLoader {
 }
 
 // exactly the process.env property-access expression
-function isProcessEnv(node: ts.Expression): boolean {
+function isProcessEnv(node: TypeScript.Expression): boolean {
 	return (
 		ts.isPropertyAccessExpression(node) &&
 		ts.isIdentifier(node.expression) &&
@@ -30,8 +43,8 @@ function isProcessEnv(node: ts.Expression): boolean {
 
 // 1-based line and column of the node start (single position lookup)
 function positionOf(
-	sourceFile: ts.SourceFile,
-	node: ts.Node,
+	sourceFile: TypeScript.SourceFile,
+	node: TypeScript.Node,
 ): { readonly line: number; readonly column: number } {
 	const { line, character } = sourceFile.getLineAndCharacterOfPosition(
 		// pass the sourceFile explicitly: without parent links (setParentNodes
@@ -41,7 +54,7 @@ function positionOf(
 	return { line: line + 1, column: character + 1 };
 }
 
-function envObjectSource(node: ts.Expression): EnvSource | undefined {
+function envObjectSource(node: TypeScript.Expression): EnvSource | undefined {
 	if (isProcessEnv(node)) {
 		return "process";
 	}
@@ -67,7 +80,7 @@ function envObjectSource(node: ts.Expression): EnvSource | undefined {
 
 // static path: "..." from a dotenv.config({...}) argument
 function configPathArgument(
-	callArguments: readonly ts.Expression[],
+	callArguments: readonly TypeScript.Expression[],
 ): string | undefined {
 	const first = callArguments[0];
 	if (first === undefined || !ts.isObjectLiteralExpression(first)) {
@@ -90,11 +103,11 @@ function configPathArgument(
 // one pre-pass collecting both the dotenv binding names and the local names
 // that shadow them; feeds the loader detection in analyzeSource
 function collectLoaderContext(
-	sourceFile: ts.SourceFile,
+	sourceFile: TypeScript.SourceFile,
 	dotenvNames: Set<string>,
 	localShadows: Set<string>,
 ): void {
-	sourceFile.forEachChild(function visit(node: ts.Node): void {
+	sourceFile.forEachChild(function visit(node: TypeScript.Node): void {
 		if (
 			ts.isImportDeclaration(node) &&
 			ts.isStringLiteral(node.moduleSpecifier)
@@ -158,7 +171,7 @@ function collectLoaderContext(
 }
 
 function isDotenvConfigCallee(
-	callee: ts.Expression,
+	callee: TypeScript.Expression,
 	dotenvNames: ReadonlySet<string>,
 	localShadows: ReadonlySet<string>,
 ): boolean {
@@ -190,9 +203,9 @@ function isDotenvConfigCallee(
 	return false;
 }
 
-// one ts.SourceFile parse per analyzed file; parent links are never read,
+// one TypeScript.SourceFile parse per analyzed file; parent links are never read,
 // so building them (setParentNodes) is skipped
-function parseSource(source: string): ts.SourceFile {
+function parseSource(source: string): TypeScript.SourceFile {
 	return ts.createSourceFile(
 		"file.ts",
 		source,
@@ -210,6 +223,7 @@ export interface SourceAnalysis {
 // parse the file once and collect both env accesses and loaders in a single
 // AST walk; the scanner uses this so every file is parsed exactly once
 export function analyzeSource(source: string): SourceAnalysis {
+	loadTypeScript();
 	const sourceFile = parseSource(source);
 
 	const accesses: EnvAccess[] = [];
@@ -218,7 +232,7 @@ export function analyzeSource(source: string): SourceAnalysis {
 	const localShadows = new Set<string>();
 	collectLoaderContext(sourceFile, dotenvNames, localShadows);
 
-	const visit = (node: ts.Node): void => {
+	const visit = (node: TypeScript.Node): void => {
 		// Dot notation on a known env object: `process.env.NAME`,
 		// `import.meta.env.NAME`, `Bun.env.NAME`.
 		if (ts.isPropertyAccessExpression(node)) {

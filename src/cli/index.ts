@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import chalk from "chalk";
 import { s } from "./style.ts";
-import { commands, envgraphCommand, findCommand } from "./commands/index.ts";
+import { commands, findCommand } from "./commands/index.ts";
 import { printHelp, printCommandHelp } from "./commands/help.ts";
 import { printVersion } from "./commands/version.ts";
 import { loadConfig, getConfigPath, setConfigUi } from "../config/index.ts";
@@ -36,7 +36,11 @@ export async function run(argv: readonly string[]): Promise<number> {
 	const cleanArgs = args.filter((a) => a !== "--minimal");
 
 	if (cleanArgs.length === 0) {
-		return envgraphCommand.run([]);
+		const entry = findCommand("envgraph");
+		if (entry === undefined) {
+			return 1;
+		}
+		return (await entry.load()).run([]);
 	}
 
 	const [first = "", ...rest] = cleanArgs;
@@ -51,13 +55,16 @@ export async function run(argv: readonly string[]): Promise<number> {
 		return 0;
 	}
 
-	const command = findCommand(first);
-	if (command) {
-		// Every command automatically supports -h/--help with a unified view.
+	const entry = findCommand(first);
+	if (entry) {
+		// Every command automatically supports -h/--help with a unified view;
+		// per-command help renders from the static registry metadata and
+		// loads no command modules.
 		if (rest.includes("--help") || rest.includes("-h")) {
-			printCommandHelp(command);
+			printCommandHelp(entry);
 			return 0;
 		}
+		const command = await entry.load();
 		return await command.run(rest);
 	}
 

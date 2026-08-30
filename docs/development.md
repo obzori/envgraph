@@ -178,9 +178,23 @@ minimal shape is a wrapper plus a pure run function:
    };
    ```
 
-3. Register it in `src/cli/commands/index.ts` by appending it to the
-   `commands` array. Order determines help-output order; help text updates
-   automatically.
+3. Register it in `src/cli/commands/index.ts` by appending an entry to the
+   registry. Order determines help-output order; help text updates
+   automatically. The entry carries the static metadata — help renders
+   without loading the module — plus a lazy loader:
+
+   ```ts
+   {
+     name: "mycommand",
+     description: "One-line description shown in help.",
+     usage: "envgraph mycommand",
+     load: () => import("./mycommand.ts").then((m) => m.myCommand),
+   },
+   ```
+
+   Command modules load on first use, so `--help` and `--version` never pay
+   for a command's dependency graph (the scanner loads the TypeScript
+   compiler API only when a parse actually happens).
 4. Add tests in `tests/` (e.g. `tests/mycommand.test.ts`) against
    `runMyCommand` — not the wrapper.
 
