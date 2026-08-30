@@ -50,35 +50,25 @@ export interface ScanOptions {
 	readonly exclude?: readonly string[];
 }
 
-// scan a project for statically detectable process.env usages
-export function scanProject(root: string, options?: ScanOptions): ScanResult {
+// helper shared by scanProject and the CLI pool path: the per-file read +
+// parse loop and the merge. `files`/`envFiles` must come from the same
+// discoverProjectFiles call that produced options.include/exclude.
+export function scanDiscoveredProject(
+	root: string,
+	files: readonly string[],
+	envFiles: readonly string[],
+	options?: ScanOptions,
+): ScanResult {
 	const byName = new Map<string, EnvVarLocation[]>();
 	const loaders: (EnvLoader & { readonly file: string })[] = [];
 	const errors: ScanError[] = [];
 	let scanned = 0;
 
-	let warned = false;
 	const threshold =
 		options?.largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
-
-	// one walk collects both the source files and the .env* file names
-	const { sources: files, envFiles } = discoverProjectFiles(root, {
-		include: options?.include,
-		exclude: options?.exclude,
-		onFileDiscovered: (count) => {
-			// Fire once, mid-walk, as soon as the threshold is crossed so the
-			// warning appears before the (possibly very long) traversal ends.
-			if (!warned && count > threshold) {
-				warned = true;
-				options?.onLargeDirectory?.(count);
-			}
-		},
-	});
-
 	const largeDirectoryNotice =
 		files.length > threshold ? { fileCount: files.length } : undefined;
-	if (largeDirectoryNotice && !warned) {
-		warned = true;
+	if (largeDirectoryNotice) {
 		options?.onLargeDirectory?.(files.length);
 	}
 
@@ -145,4 +135,32 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 	);
 
 	return { variables, loaders, envFiles, errors, scannedFiles: scanned, largeDirectoryNotice };
+}
+
+// scan a project for statically detectable process.env usages
+export function scanProject(root: string, options?: ScanOptions): ScanResult {
+	let warned = false;
+	const threshold =
+		options?.largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
+
+	// one walk collects both the source files and the .env* file names
+	const { sources: files, envFiles } = discoverProjectFiles(root, {
+		include: options?.include,
+		exclude: options?.exclude,
+		onFileDiscovered: (count) => {
+			// Fire once, mid-walk, as soon as the threshold is crossed so the
+			// warning appears before the (possibly very long) traversal ends.
+			if (!warned && count > threshold) {
+				warned = true;
+				options?.onLargeDirectory?.(count);
+			}
+		},
+	});
+
+	if (files.length > threshold && !warned) {
+		warned = true;
+		options?.onLargeDirectory?.(files.length);
+	}
+
+	return scanDiscoveredProject(root, files, envFiles, options);
 }

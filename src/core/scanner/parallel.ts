@@ -145,10 +145,28 @@ export async function scanProjectParallel(
 		},
 	});
 
+	if (files.length > threshold && !warned) {
+		warned = true;
+		options?.onLargeDirectory?.(files.length);
+	}
+
+	return scanDiscoveredProjectParallel(root, files, envFiles, options);
+}
+
+// per-file parse of an already-discovered file list, demuxed into the worker
+// pool; `files`/`envFiles` must come from the same discoverProjectFiles call
+// that produced options.include/exclude (see scanProjectParallel)
+export async function scanDiscoveredProjectParallel(
+	root: string,
+	files: readonly string[],
+	envFiles: readonly string[],
+	options?: ScanOptions,
+): Promise<ScanResult> {
+	const threshold =
+		options?.largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
 	const largeDirectoryNotice =
 		files.length > threshold ? { fileCount: files.length } : undefined;
-	if (largeDirectoryNotice && !warned) {
-		warned = true;
+	if (largeDirectoryNotice) {
 		options?.onLargeDirectory?.(files.length);
 	}
 

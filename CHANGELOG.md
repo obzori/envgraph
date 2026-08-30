@@ -9,13 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
-- `scan` splits the per-file parse across a worker pool (`scanProjectParallel`),
-  so the CPU-bound analysis runs on several threads while discovery and the
-  report stay on the caller's thread. Worker count adapts to the tree size and
-  is capped at 4 — measured on a 20,000-file fixture (best of 3): the in-pool
-  scan 682 ms → 450 ms (W=4 sweet spot; W=8 is slower than W=4 on small-core
-  hosts). Gains grow with core count: parallelizing the parse always wins where
-  parsing is a large share of the runtime.
+- `scan` splits the per-file parse across a worker pool, so the CPU-bound
+  analysis runs on several threads while discovery and the report stay on the
+  caller's thread. The pool is only used above 10,000 source files — for
+  smaller trees booting workers costs more than the parallelism saves, so they
+  keep using the proven single-thread scan. Worker count adapts to the tree
+  size and is capped at 4. Measured on a 20,000-file fixture (best of 3): CLI
+  scan 689 ms → 542 ms (−21%); on 1,000 and 5,000 files the parallel path matches
+  the sync one byte-for-byte and time-for-time (no regression).
 - `check` reuses the scan result instead of walking the tree a second time
   to list `.env*` files — one full traversal less per run. Measured on a
   5,000-file fixture (best of 5): `runCheck` 103 ms → 98 ms.

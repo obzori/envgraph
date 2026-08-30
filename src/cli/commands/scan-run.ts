@@ -1,6 +1,7 @@
-import { scanProject } from "../../core/scanner/scanner.ts";
-import { scanProjectParallel } from "../../core/scanner/parallel.ts";
-import type { ScanResult } from "../../core/scanner/scanner.ts";
+import { scanProject, scanDiscoveredProject } from "../../core/scanner/scanner.ts";
+import { scanDiscoveredProjectParallel } from "../../core/scanner/parallel.ts";
+import { discoverProjectFiles } from "../../filesystem/index.ts";
+import type { ScanResult, ScanOptions } from "../../core/scanner/scanner.ts";
 import { formatOutput } from "../../output/index.ts";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -57,8 +58,11 @@ export function runScan(
 	return finishScan(scan, head.flags, notify, stdout, stderr);
 }
 
-// parallel variant used by the CLI: flags/guard/walk/merge stay on the caller's
-// thread, the per-file parse runs in a worker pool while the spinner animates
+// parallel variant used by the CLI: flags/guard/walk stay on the caller's
+// thread; the per-file parse runs in a worker pool only once the tree is big
+// enough to amortize the worker boot + TypeScript load (~100-150 ms on typical
+// hosts). Small projects skip the pool entirely and use the sync path — it is
+// faster there and avoids paying that fixed cost every time.
 export async function runScanParallel(
 	args: readonly string[],
 	root: string,
@@ -77,24 +81,41 @@ export async function runScanParallel(
 		return { exitCode: 1, stdout, stderr };
 	}
 
+	const scanOptions: ScanOptions = {
+		largeDirectoryThreshold: options?.largeDirectoryThreshold,
+		include: options?.include,
+		exclude: options?.exclude,
+	};
+
+	// one walk; the pool path reuses the discovered files instead of walking
+	// the tree again
+	const { sources: files, envFiles } = discoverProjectFiles(root, {
+		include: options?.include,
+		exclude: options?.exclude,
+	});
+
 	let scan: ScanResult;
-	try {
-		scan = await scanProjectParallel(root, {
-			largeDirectoryThreshold: options?.largeDirectoryThreshold,
-			include: options?.include,
-			exclude: options?.exclude,
-		});
-	} catch {
-		// the pool is unavailable or failed — fall back to the proven sync path
-		scan = scanProject(root, {
-			largeDirectoryThreshold: options?.largeDirectoryThreshold,
-			include: options?.include,
-			exclude: options?.exclude,
-		});
+	if (files.length < PARALLEL_MIN_FILES) {
+		scan = scanDiscoveredProject(root, files, envFiles, scanOptions);
+	} else {
+		try {
+			// the pool is unavailable or failed — fall back to the proven sync path
+			scan = await scanDiscoveredProjectParallel(
+				root,
+				files,
+				envFiles,
+				scanOptions,
+			);
+		} catch {
+			scan = scanDiscoveredProject(root, files, envFiles, scanOptions);
+		}
 	}
 
 	return finishScan(scan, head.flags, notify, stdout, stderr);
 }
+
+// below this many source files the sync scan is faster than spawning the pool
+export const PARALLEL_MIN_FILES = 10_000;
 
 // shared head of runScan/runScanParallel: --help and flag errors short-circuit
 // with an outcome; otherwise returns the parsed flags

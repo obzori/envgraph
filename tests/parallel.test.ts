@@ -105,3 +105,25 @@ test("parallel scan of an empty project matches the sync result", async () => {
 		rmSync(root, { recursive: true, force: true });
 	}
 });
+
+// the CLI pool path routes small trees to the sync scan (no worker boot), so
+// its result must be byte-identical to runScan — while still async for the
+// spinner. Regression guard for the PARALLEL_MIN_FILES routing.
+import { runScan, runScanParallel } from "../src/cli/commands/scan-run.ts";
+
+test("runScanParallel routes small trees to sync and stays identical", async () => {
+	const root = makeProject({
+		"src/a.ts": "process.env.KEY;\n",
+		"src/b.ts": 'import "dotenv/config";\nconst { OTHER } = process.env;\n',
+		".env": "KEY=1\n",
+	});
+	try {
+		const sync = runScan(["--format", "json"], root);
+		const parallel = await runScanParallel(["--format", "json"], root);
+		assert.equal(parallel.exitCode, sync.exitCode);
+		assert.deepEqual(parallel.stdout, sync.stdout);
+		assert.deepEqual(parallel.stderr, sync.stderr);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
