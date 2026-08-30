@@ -127,3 +127,29 @@ test("runScanParallel routes small trees to sync and stays identical", async () 
 		rmSync(root, { recursive: true, force: true });
 	}
 });
+
+// live progress: the onFileDiscovered callback fires during the walk with a
+// monotonically increasing count ending at the number of scanned files
+test("runScanParallel reports live file discovery progress", async () => {
+	const root = makeProject({
+		"src/a.ts": "process.env.KEY;\n",
+		"src/b.ts": "process.env.OTHER;\n",
+		"src/c.ts": "process.env.THIRD;\n",
+		".env": "KEY=1\n",
+	});
+	try {
+		const seen: number[] = [];
+		const outcome = await runScanParallel(["--format", "json"], root, {
+			onFileDiscovered: (count) => seen.push(count),
+		});
+		assert.equal(outcome.exitCode, 0);
+		assert.ok(seen.length >= 3, "callback should fire at least once per file");
+		assert.equal(seen[0], 1);
+		assert.equal(seen[seen.length - 1], 3);
+		for (let i = 1; i < seen.length; i++) {
+			assert.ok(seen[i]! > seen[i - 1]!, "count must increase");
+		}
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});

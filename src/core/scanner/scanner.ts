@@ -45,6 +45,9 @@ export interface ScanOptions {
 	// threshold, before any file is read or parsed
 	readonly onLargeDirectory?: (fileCount: number) => void;
 	readonly largeDirectoryThreshold?: number;
+	// called during the file walk with the count of source files matched so
+	// far; used for live progress UI (e.g. "scanning ... (N files)")
+	readonly onFileDiscovered?: (fileCount: number) => void;
 	// include/exclude globs (relative POSIX paths) filtering scanned files
 	readonly include?: readonly string[];
 	readonly exclude?: readonly string[];
@@ -139,27 +142,35 @@ export function scanDiscoveredProject(
 
 // scan a project for statically detectable process.env usages
 export function scanProject(root: string, options?: ScanOptions): ScanResult {
+	const {
+		include,
+		exclude,
+		onFileDiscovered,
+		onLargeDirectory,
+		largeDirectoryThreshold,
+	} = options ?? {};
 	let warned = false;
 	const threshold =
-		options?.largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
+		largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
 
 	// one walk collects both the source files and the .env* file names
 	const { sources: files, envFiles } = discoverProjectFiles(root, {
-		include: options?.include,
-		exclude: options?.exclude,
+		include,
+		exclude,
 		onFileDiscovered: (count) => {
+			onFileDiscovered?.(count);
 			// Fire once, mid-walk, as soon as the threshold is crossed so the
 			// warning appears before the (possibly very long) traversal ends.
 			if (!warned && count > threshold) {
 				warned = true;
-				options?.onLargeDirectory?.(count);
+				onLargeDirectory?.(count);
 			}
 		},
 	});
 
 	if (files.length > threshold && !warned) {
 		warned = true;
-		options?.onLargeDirectory?.(files.length);
+		onLargeDirectory?.(files.length);
 	}
 
 	return scanDiscoveredProject(root, files, envFiles, options);

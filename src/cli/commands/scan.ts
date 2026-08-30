@@ -44,6 +44,11 @@ export const scanCommand: EnvGraphCommand = {
 
 		const spinner = new Spinner(`scanning ${cwd}`);
 		spinner.start();
+		// live counter: the walk reports matched source files, and the spinner
+		// line turns into "scanning ... (N files)" while discovery runs
+		const onFileDiscovered = (count: number): void => {
+			spinner.updateText(`scanning ${cwd} (${count.toLocaleString("en-US")} files)`);
+		};
 		let outcome: ScanOutcome;
 		try {
 			// heavy parse runs in a worker pool (off the event loop), so the
@@ -54,6 +59,7 @@ export const scanCommand: EnvGraphCommand = {
 			const scanOptions = {
 				include: config.include,
 				exclude: config.exclude,
+				onFileDiscovered,
 			};
 			outcome = await runScanParallel(effectiveArgs, cwd, scanOptions);
 		} catch {
@@ -63,6 +69,7 @@ export const scanCommand: EnvGraphCommand = {
 			outcome = runScan(effectiveArgs, cwd, {
 				include: config.include,
 				exclude: config.exclude,
+				onFileDiscovered,
 			});
 		}
 		spinner.stop(outcome.exitCode === 0);

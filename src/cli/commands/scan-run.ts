@@ -26,6 +26,9 @@ export interface ScanRunOptions {
 	// include/exclude globs from envgraph.config (see ScanOptions)
 	include?: readonly string[];
 	exclude?: readonly string[];
+	// live progress: called during the file walk with the count of matched
+	// source files so far (drives "scanning ... (N files)" in the CLI)
+	onFileDiscovered?: (fileCount: number) => void;
 }
 
 // implements `envgraph scan`; pure w.r.t. process state — returns an outcome,
@@ -53,6 +56,7 @@ export function runScan(
 		largeDirectoryThreshold: options?.largeDirectoryThreshold,
 		include: options?.include,
 		exclude: options?.exclude,
+		onFileDiscovered: options?.onFileDiscovered,
 	});
 
 	return finishScan(scan, head.flags, notify, stdout, stderr);
@@ -92,6 +96,7 @@ export async function runScanParallel(
 	const { sources: files, envFiles } = discoverProjectFiles(root, {
 		include: options?.include,
 		exclude: options?.exclude,
+		onFileDiscovered: options?.onFileDiscovered,
 	});
 
 	let scan: ScanResult;
