@@ -45,4 +45,4 @@ overhead for both versions, so the ratio understates the in-process gain):
   smaller spread — the shorter startup path is also more stable)
 
 [1.1.1]: [#9eb6cb0](https://github.com/obzori/envgraph/commit/9eb6cb071a7a01507e473bc537d204bd6d7e358b)
-[1.1.2]: [#000000](https://github.com/obzori/envgraph/commit/000000)
+[1.1.2]: [#178ae81](https://github.com/obzori/envgraph/commit/178ae81fd45ab2f89529bebdb489cd89f97c10c1)
