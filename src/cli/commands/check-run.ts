@@ -1,11 +1,11 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { discoverEnvFiles } from "../../filesystem/index.ts";
+import { countEntries } from "../../filesystem/index.ts";
+import { scanProject } from "../../core/scanner/scanner.ts";
 import { parseCheckFlags } from "./check-flags.ts";
 import { buildIssues } from "./check-issues.ts";
 import type { CheckIssue } from "./check-issues.ts";
 import { formatCheckReport } from "./check-report.ts";
-import { countEntries } from "../../filesystem/index.ts";
 import { DIRECTORY_ENTRY_LIMIT } from "./scan.ts";
 
 export interface CheckOutcome {
@@ -47,9 +47,11 @@ export function runCheck(
 		return { exitCode: 1, stdout, stderr };
 	}
 
+	// one scan feeds both the env-file list and the usage cross-reference
+	const scan = scanProject(root);
 	// .env.example is a template for committing, not an actual environment
-	const envFiles = discoverEnvFiles(root).filter((f) => !f.endsWith(".example"));
-	const { issues, usedCount } = buildIssues(root, envFiles);
+	const envFiles = scan.envFiles.filter((f) => !f.endsWith(".example"));
+	const { issues, usedCount } = buildIssues(root, scan);
 	const missingCount = issues.filter((i) => i.kind === "missing").length;
 	const exitCode = missingCount > 0 ? 1 : 0;
 

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { parseEnvFile } from "../../core/env/parser.ts";
-import { scanProject } from "../../core/scanner/scanner.ts";
+import type { ScanResult } from "../../core/scanner/scanner.ts";
 
 export interface CheckIssue {
 	readonly kind: "missing" | "unused" | "duplicate";
@@ -62,13 +62,16 @@ function collectDeclared(
 	return { defined, duplicates };
 }
 
-// cross-reference declared variables with actual usage -> sorted issue list
+// cross-reference declared variables with actual usage -> sorted issue list;
+// takes the scan result so the tree is not walked a second time
 export function buildIssues(
 	root: string,
-	envFiles: readonly string[],
+	scan: ScanResult,
 ): { issues: CheckIssue[]; usedCount: number } {
+	// .env.example is a template for committing, not an actual environment
+	const envFiles = scan.envFiles.filter((f) => !f.endsWith(".example"));
 	const { defined, duplicates } = collectDeclared(root, envFiles);
-	const usedVars = scanProject(root).variables;
+	const usedVars = scan.variables;
 	const usedNames = new Set(usedVars.map((v) => v.name));
 
 	const issues: CheckIssue[] = [];

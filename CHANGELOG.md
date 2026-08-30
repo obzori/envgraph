@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Performance
+
+- `check` reuses the scan result instead of walking the tree a second time
+  to list `.env*` files — one full traversal less per run. Measured on a
+  5,000-file fixture (best of 5): `runCheck` 103 ms → 98 ms.
+
 ## [1.1.2] - 2026-08-30
 
 ### Performance
