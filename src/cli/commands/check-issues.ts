@@ -11,11 +11,16 @@ export interface CheckIssue {
 // name -> set of `file:${line}` locations
 type DefinedMap = Map<string, Set<string>>;
 
-// next line of `name=` in the env file, searching strictly AFTER `from`
-function declarationLine(source: string, name: string, from: number): number {
-	const lines = source.split(/\r?\n/);
+// next line of `name=` in the env file, searching strictly AFTER `from`;
+// takes pre-split lines so the file is not re-split per variable
+function declarationLine(
+	lines: readonly string[],
+	name: string,
+	from: number,
+): number {
+	const prefix = `${name}=`;
 	for (let i = from + 1; i < lines.length; i++) {
-		if (lines[i]?.startsWith(`${name}=`)) {
+		if (lines[i]?.startsWith(prefix)) {
 			return i;
 		}
 	}
@@ -39,10 +44,11 @@ function collectDeclared(
 		} catch {
 			continue;
 		}
+		const lines = source.split(/\r?\n/);
 		let cursor = -1;
 		for (const line of parseEnvFile(source)) {
 			if (line.kind !== "assignment") continue;
-			cursor = declarationLine(source, line.name, cursor);
+			cursor = declarationLine(lines, line.name, cursor);
 			const loc = `${rel}:${cursor + 1}`;
 			let set = defined.get(line.name);
 			if (set === undefined) {

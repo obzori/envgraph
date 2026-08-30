@@ -26,3 +26,6 @@ Thumbs.db
 .idea/
 
 envgraph.config.*
+
+# Performance benchmark (dev-only tool)
+perf-bench.js

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { discoverEnvFiles, discoverSourceFiles } from "../../filesystem/index.ts";
-import { findEnvAccesses, findEnvLoaders } from "./ast.ts";
+import { discoverProjectFiles } from "../../filesystem/index.ts";
+import { analyzeSource } from "./ast.ts";
 import type { EnvLoader, EnvSource } from "./ast.ts";
 
 // usage of one environment variable
@@ -61,7 +61,8 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 	const threshold =
 		options?.largeDirectoryThreshold ?? LARGE_DIRECTORY_FILE_THRESHOLD;
 
-	const files = discoverSourceFiles(root, {
+	// one walk collects both the source files and the .env* file names
+	const { sources: files, envFiles } = discoverProjectFiles(root, {
 		include: options?.include,
 		exclude: options?.exclude,
 		onFileDiscovered: (count) => {
@@ -95,8 +96,10 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 
 		let accesses;
 		try {
-			accesses = findEnvAccesses(source);
-			for (const loader of findEnvLoaders(source)) {
+			// one parse per file: accesses and loaders share a single AST walk
+			const analysis = analyzeSource(source);
+			accesses = analysis.accesses;
+			for (const loader of analysis.loaders) {
 				loaders.push({ ...loader, file });
 			}
 		} catch (error) {
@@ -133,8 +136,6 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 	loaders.sort((a, b) =>
 		a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line,
 	);
-
-	const envFiles = discoverEnvFiles(root);
 
 	return { variables, loaders, envFiles, errors, scannedFiles: scanned, largeDirectoryNotice };
 }

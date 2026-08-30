@@ -108,9 +108,9 @@ function regexFor(glob: string): RegExp {
 	return compiled;
 }
 
-// glob match against a POSIX-style relative path; trailing "/" ignored,
-// wildcard-less patterns (e.g. "src") match everything under the directory
-export function matchGlob(relativePath: string, pattern: string): boolean {
+// brace-expand and normalize one glob pattern (trailing "/" ignored,
+// wildcard-less patterns e.g. "src" match everything under the directory)
+function normalizeGlob(pattern: string): string[] {
 	let glob = pattern.trim().replace(/^\.\//, "").replace(/\/+$/, "");
 	if (glob === "") {
 		glob = "**";
@@ -118,7 +118,26 @@ export function matchGlob(relativePath: string, pattern: string): boolean {
 	if (!/[*?{]/.test(glob)) {
 		glob = `${glob}/**`;
 	}
-	return expandBraces(glob).some((g) => regexFor(g).test(relativePath));
+	return expandBraces(glob);
+}
+
+// glob match against a POSIX-style relative path
+export function matchGlob(relativePath: string, pattern: string): boolean {
+	return normalizeGlob(pattern).some((g) => regexFor(g).test(relativePath));
+}
+
+// compile an include/exclude glob list once per walk instead of re-expanding
+// braces and re-normalizing the pattern for every visited file
+function compileMatcher(
+	patterns?: readonly string[],
+): ((relativePath: string) => boolean) | undefined {
+	if (patterns === undefined || patterns.length === 0) {
+		return undefined;
+	}
+	const regexes = patterns
+		.flatMap((pattern) => normalizeGlob(pattern))
+		.map((g) => regexFor(g));
+	return (relativePath) => regexes.some((regex) => regex.test(relativePath));
 }
 
 // include/exclude glob filters plus the discovery-progress callback
@@ -129,13 +148,22 @@ export interface SourceFileFilter {
 	readonly onFileDiscovered?: (count: number) => void;
 }
 
-export function discoverSourceFiles(
+// source files (with include/exclude applied) and .env* files, from one walk
+export interface DiscoveredFiles {
+	readonly sources: string[];
+	readonly envFiles: string[];
+}
+
+// one filesystem walk collecting both source files and .env* file names;
+// the scanner uses this instead of two separate full-tree traversals
+export function discoverProjectFiles(
 	root: string,
 	options?: SourceFileFilter,
-): string[] {
-	const results: string[] = [];
-	const include = options?.include;
-	const exclude = options?.exclude;
+): DiscoveredFiles {
+	const sources: string[] = [];
+	const envFiles: string[] = [];
+	const includeMatch = compileMatcher(options?.include);
+	const excludeMatch = compileMatcher(options?.exclude);
 	const onFileDiscovered = options?.onFileDiscovered;
 
 	function walk(dir: string): void {
@@ -153,22 +181,31 @@ export function discoverSourceFiles(
 				if (!EXCLUDED_DIRECTORIES.has(entry.name)) {
 					walk(full);
 				}
-			} else if (
-				entry.isFile() &&
-				SOURCE_EXTENSIONS.has(path.extname(entry.name)) &&
-				(include === undefined ||
-					include.length === 0 ||
-					include.some((pattern) => matchGlob(relative, pattern))) &&
-				!(exclude !== undefined && exclude.some((pattern) => matchGlob(relative, pattern)))
-			) {
-				results.push(relative);
-				onFileDiscovered?.(results.length);
+			} else if (entry.isFile()) {
+				if (isEnvFileName(entry.name)) {
+					envFiles.push(relative);
+				}
+				if (
+					SOURCE_EXTENSIONS.has(path.extname(entry.name)) &&
+					(includeMatch?.(relative) ?? true) &&
+					!(excludeMatch?.(relative) ?? false)
+				) {
+					sources.push(relative);
+					onFileDiscovered?.(sources.length);
+				}
 			}
 		}
 	}
 
 	walk(root);
-	return results.sort();
+	return { sources: sources.sort(), envFiles: envFiles.sort() };
+}
+
+export function discoverSourceFiles(
+	root: string,
+	options?: SourceFileFilter,
+): string[] {
+	return discoverProjectFiles(root, options).sources;
 }
 
 // matches dotenv/node convention: exactly .env or .env.<something>
@@ -179,30 +216,7 @@ export function isEnvFileName(fileName: string): boolean {
 // discover .env* files under root (same exclusions as source discovery);
 // names only — contents are never read
 export function discoverEnvFiles(root: string): string[] {
-	const results: string[] = [];
-
-	function walk(dir: string): void {
-		let entries;
-		try {
-			entries = readdirSync(dir, { withFileTypes: true });
-		} catch {
-			return;
-		}
-
-		for (const entry of entries) {
-			const relative = path.relative(root, path.join(dir, entry.name));
-			if (entry.isDirectory()) {
-				if (!EXCLUDED_DIRECTORIES.has(entry.name)) {
-					walk(path.join(dir, entry.name));
-				}
-			} else if (entry.isFile() && isEnvFileName(entry.name)) {
-				results.push(relative.split(path.sep).join("/"));
-			}
-		}
-	}
-
-	walk(root);
-	return results.sort();
+	return discoverProjectFiles(root).envFiles;
 }
 
 // cheaply estimate tree size under root, stopping after `limit` entries;

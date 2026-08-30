@@ -28,13 +28,17 @@ function isProcessEnv(node: ts.Expression): boolean {
 	);
 }
 
-function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
-	return sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
-}
-
-// 1-based column of the node start on its line
-function columnOf(sourceFile: ts.SourceFile, node: ts.Node): number {
-	return sourceFile.getLineAndCharacterOfPosition(node.getStart()).character + 1;
+// 1-based line and column of the node start (single position lookup)
+function positionOf(
+	sourceFile: ts.SourceFile,
+	node: ts.Node,
+): { readonly line: number; readonly column: number } {
+	const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+		// pass the sourceFile explicitly: without parent links (setParentNodes
+		// is false) getStart() cannot resolve it from node.parent
+		node.getStart(sourceFile),
+	);
+	return { line: line + 1, column: character + 1 };
 }
 
 function envObjectSource(node: ts.Expression): EnvSource | undefined {
@@ -83,73 +87,62 @@ function configPathArgument(
 }
 
 
-function collectDotenvBindingNames(
+// one pre-pass collecting both the dotenv binding names and the local names
+// that shadow them; feeds the loader detection in analyzeSource
+function collectLoaderContext(
 	sourceFile: ts.SourceFile,
-	bindings: Set<string>,
+	dotenvNames: Set<string>,
+	localShadows: Set<string>,
 ): void {
 	sourceFile.forEachChild(function visit(node: ts.Node): void {
-		// import dotenv from "dotenv"; / import * as dotenv from "dotenv";
 		if (
 			ts.isImportDeclaration(node) &&
-			ts.isStringLiteral(node.moduleSpecifier) &&
-			node.moduleSpecifier.text === "dotenv"
+			ts.isStringLiteral(node.moduleSpecifier)
 		) {
+			const specifier = node.moduleSpecifier.text;
 			const clause = node.importClause;
-			if (clause?.name) {
-				bindings.add(clause.name.text);
-			}
-			if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
-				bindings.add(clause.namedBindings.name.text);
+			// import dotenv from "dotenv"; / import * as dotenv from "dotenv";
+			if (specifier === "dotenv") {
+				if (clause?.name) {
+					dotenvNames.add(clause.name.text);
+				}
+				if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+					dotenvNames.add(clause.namedBindings.name.text);
+				}
+			} else if (specifier !== "dotenv/config" && clause?.name) {
+				// Local/relative imports shadow the npm package name,
+				// e.g. `import dotenv from "./dotenv"`.
+				localShadows.add(clause.name.text);
 			}
 		}
 
-		// const dotenv = require("dotenv");
-		if (
-			ts.isVariableDeclaration(node) &&
-			ts.isIdentifier(node.name) &&
-			node.initializer !== undefined &&
-			ts.isCallExpression(node.initializer) &&
-			ts.isIdentifier(node.initializer.expression) &&
-			node.initializer.expression.text === "require" &&
-			node.initializer.arguments.length === 1
-		) {
-			const specifier = node.initializer.arguments[0];
+		if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+			// const dotenv = require("dotenv"); (any local name)
+			const initializer = node.initializer;
 			if (
-				specifier !== undefined &&
-				ts.isStringLiteral(specifier) &&
-				specifier.text === "dotenv"
+				initializer !== undefined &&
+				ts.isCallExpression(initializer) &&
+				ts.isIdentifier(initializer.expression) &&
+				initializer.expression.text === "require" &&
+				initializer.arguments.length === 1
 			) {
-				bindings.add(node.name.text);
+				const specifier = initializer.arguments[0];
+				if (
+					specifier !== undefined &&
+					ts.isStringLiteral(specifier) &&
+					specifier.text === "dotenv"
+				) {
+					dotenvNames.add(node.name.text);
+				}
+			}
+			// a local `dotenv` binding shadows the npm package (unless it came
+			// from require("dotenv") above)
+			if (node.name.text === "dotenv") {
+				localShadows.add("dotenv");
 			}
 		}
 
-		node.forEachChild(visit);
-	});
-}
-
-function collectLocalShadowNames(
-	sourceFile: ts.SourceFile,
-	shadows: Set<string>,
-): void {
-	sourceFile.forEachChild(function visit(node: ts.Node): void {
-		// Local/relative imports shadow the npm package name,
-		// e.g. `import dotenv from "./dotenv"`.
-		if (
-			ts.isImportDeclaration(node) &&
-			node.importClause?.name &&
-			ts.isStringLiteral(node.moduleSpecifier) &&
-			node.moduleSpecifier.text !== "dotenv" &&
-			node.moduleSpecifier.text !== "dotenv/config"
-		) {
-			shadows.add(node.importClause.name.text);
-		}
-		if (
-			ts.isVariableDeclaration(node) &&
-			ts.isIdentifier(node.name) &&
-			node.name.text === "dotenv"
-		) {
-			shadows.add("dotenv");
-		}
+		// a function parameter named dotenv shadows the package
 		if (
 			(ts.isFunctionDeclaration(node) || ts.isArrowFunction(node)) &&
 			node.parameters.some(
@@ -157,8 +150,9 @@ function collectLocalShadowNames(
 					ts.isIdentifier(parameter.name) && parameter.name.text === "dotenv",
 			)
 		) {
-			shadows.add("dotenv");
+			localShadows.add("dotenv");
 		}
+
 		node.forEachChild(visit);
 	});
 }
@@ -196,84 +190,33 @@ function isDotenvConfigCallee(
 	return false;
 }
 
-// every statically-analyzable env loading call; purely structural (AST)
-export function findEnvLoaders(source: string): EnvLoader[] {
-	const sourceFile = ts.createSourceFile(
+// one ts.SourceFile parse per analyzed file; parent links are never read,
+// so building them (setParentNodes) is skipped
+function parseSource(source: string): ts.SourceFile {
+	return ts.createSourceFile(
 		"file.ts",
 		source,
 		ts.ScriptTarget.Latest,
-		/* setParentNodes */ true,
+		/* setParentNodes */ false,
 		ts.ScriptKind.TS,
 	);
-
-	const dotenvNames = new Set<string>();
-	collectDotenvBindingNames(sourceFile, dotenvNames);
-	const localShadows = new Set<string>();
-	collectLocalShadowNames(sourceFile, localShadows);
-
-	const loaders: EnvLoader[] = [];
-
-	const visit = (node: ts.Node): void => {
-		// Side-effect import: import "dotenv/config";
-		if (
-			ts.isImportDeclaration(node) &&
-			node.importClause === undefined &&
-			ts.isStringLiteral(node.moduleSpecifier) &&
-			node.moduleSpecifier.text === "dotenv/config"
-		) {
-			loaders.push({ kind: "dotenv", line: lineOf(sourceFile, node) });
-		}
-
-		if (ts.isCallExpression(node)) {
-			const { expression: callee, arguments: callArguments } = node;
-
-			// <dotenv>.config(...)
-			if (isDotenvConfigCallee(callee, dotenvNames, localShadows)) {
-				loaders.push({
-					kind: "dotenv",
-					line: lineOf(sourceFile, node),
-					envFile: configPathArgument(callArguments),
-				});
-			}
-
-			// process.loadEnvFile(...) — Node.js native .env loading.
-			if (
-				ts.isPropertyAccessExpression(callee) &&
-				ts.isIdentifier(callee.expression) &&
-				callee.expression.text === "process" &&
-				callee.name.text === "loadEnvFile"
-			) {
-				const first = callArguments[0];
-				loaders.push({
-					kind: "node-load-env-file",
-					line: lineOf(sourceFile, node),
-					envFile:
-						first !== undefined && ts.isStringLiteral(first)
-							? first.text
-							: undefined,
-				});
-			}
-		}
-
-		node.forEachChild(visit);
-	};
-
-	sourceFile.forEachChild(visit);
-	return loaders;
 }
 
-// every statically-analyzable env variable access: process.env
-// (dot/bracket/destructuring), import.meta.env, Bun.env, Deno.env.get("...")
-export function findEnvAccesses(source: string): EnvAccess[] {
-	const sourceFile = ts.createSourceFile(
-		"file.ts",
-		source,
-		ts.ScriptTarget.Latest,
-		/* setParentNodes */ true,
-		ts.ScriptKind.TS,
-	);
+export interface SourceAnalysis {
+	readonly accesses: EnvAccess[];
+	readonly loaders: EnvLoader[];
+}
+
+// parse the file once and collect both env accesses and loaders in a single
+// AST walk; the scanner uses this so every file is parsed exactly once
+export function analyzeSource(source: string): SourceAnalysis {
+	const sourceFile = parseSource(source);
 
 	const accesses: EnvAccess[] = [];
+	const loaders: EnvLoader[] = [];
+	const dotenvNames = new Set<string>();
+	const localShadows = new Set<string>();
+	collectLoaderContext(sourceFile, dotenvNames, localShadows);
 
 	const visit = (node: ts.Node): void => {
 		// Dot notation on a known env object: `process.env.NAME`,
@@ -281,12 +224,8 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 		if (ts.isPropertyAccessExpression(node)) {
 			const source = envObjectSource(node.expression);
 			if (source !== undefined) {
-				accesses.push({
-					name: node.name.text,
-					line: lineOf(sourceFile, node),
-					column: columnOf(sourceFile, node),
-					source,
-				});
+				const { line, column } = positionOf(sourceFile, node);
+				accesses.push({ name: node.name.text, line, column, source });
 			}
 		}
 
@@ -302,10 +241,11 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 					? envObjectSource(node.expression)
 					: undefined;
 			if (source !== undefined) {
+				const { line, column } = positionOf(sourceFile, node);
 				accesses.push({
 					name: node.argumentExpression.text,
-					line: lineOf(sourceFile, node),
-					column: columnOf(sourceFile, node),
+					line,
+					column,
 					source,
 				});
 			}
@@ -338,19 +278,15 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 						name = element.name.text;
 					}
 					if (name !== undefined) {
-						accesses.push({
-							name,
-							line: lineOf(sourceFile, element),
-							column: columnOf(sourceFile, element),
-							source,
-						});
+						const { line, column } = positionOf(sourceFile, element);
+						accesses.push({ name, line, column, source });
 					}
 				}
 			}
 		}
 
-		// Deno: `Deno.env.get("NAME")` (also `.get(key)` only with literals).
 		if (ts.isCallExpression(node)) {
+			// Deno: `Deno.env.get("NAME")` (also `.get(key)` only with literals).
 			const callee = node.expression;
 			if (
 				ts.isPropertyAccessExpression(callee) &&
@@ -362,19 +298,67 @@ export function findEnvAccesses(source: string): EnvAccess[] {
 			) {
 				const first = node.arguments[0];
 				if (first !== undefined && ts.isStringLiteral(first)) {
-					accesses.push({
-						name: first.text,
-						line: lineOf(sourceFile, node),
-						column: columnOf(sourceFile, node),
-						source: "deno",
-					});
+					const { line, column } = positionOf(sourceFile, node);
+					accesses.push({ name: first.text, line, column, source: "deno" });
 				}
 			}
+
+			const { expression: calleeExpr, arguments: callArguments } = node;
+
+			// <dotenv>.config(...)
+			if (isDotenvConfigCallee(calleeExpr, dotenvNames, localShadows)) {
+				const { line } = positionOf(sourceFile, node);
+				loaders.push({
+					kind: "dotenv",
+					line,
+					envFile: configPathArgument(callArguments),
+				});
+			}
+
+			// process.loadEnvFile(...) — Node.js native .env loading.
+			if (
+				ts.isPropertyAccessExpression(calleeExpr) &&
+				ts.isIdentifier(calleeExpr.expression) &&
+				calleeExpr.expression.text === "process" &&
+				calleeExpr.name.text === "loadEnvFile"
+			) {
+				const first = callArguments[0];
+				const { line } = positionOf(sourceFile, node);
+				loaders.push({
+					kind: "node-load-env-file",
+					line,
+					envFile:
+						first !== undefined && ts.isStringLiteral(first)
+							? first.text
+							: undefined,
+				});
+			}
+		}
+
+		// Side-effect import: import "dotenv/config";
+		if (
+			ts.isImportDeclaration(node) &&
+			node.importClause === undefined &&
+			ts.isStringLiteral(node.moduleSpecifier) &&
+			node.moduleSpecifier.text === "dotenv/config"
+		) {
+			loaders.push({ kind: "dotenv", line: positionOf(sourceFile, node).line });
 		}
 
 		node.forEachChild(visit);
 	};
 
 	sourceFile.forEachChild(visit);
-	return accesses;
+	return { accesses, loaders };
+}
+
+// every statically-analyzable env loading call; purely structural (AST)
+export function findEnvLoaders(source: string): EnvLoader[] {
+	return analyzeSource(source).loaders;
+}
+
+// every statically-analyzable env variable access: process.env
+// (dot/bracket/destructuring), import.meta.env, Bun.env, Deno.env.get("...")
+export function findEnvAccesses(source: string): EnvAccess[] {
+	return analyzeSource(source).accesses;
 }
