@@ -2,11 +2,35 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 const SOURCE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx"]);
+// directories never scanned; heuristic — the entry name alone decides, so the
+// walk skips the whole subtree without recursing into it. Covers caches and
+// build outputs that are never project source, regardless of nesting depth.
 const EXCLUDED_DIRECTORIES = new Set([
 	"node_modules",
 	".git",
+	".hg",
+	".svn",
 	"dist",
 	"build",
+	"out",
+	"target",
+	"coverage",
+	".next",
+	".nuxt",
+	".svelte-kit",
+	".turbo",
+	".vercel",
+	".parcel-cache",
+	".cache",
+	".npm",
+	".yarn",
+	".pnpm-store",
+	"vendor",
+	"bower_components",
+	"Pods",
+	"Library",
+	"Applications",
+	"DerivedData",
 ]);
 
 // expand top-level {a,b} brace alternation into plain globs; nested braces
