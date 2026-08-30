@@ -45,6 +45,10 @@ Scanning:
   loading, `env-cmd`, etc.) are not recognized.
 - Import resolution is specifier-based only: no path mapping, tsconfig
   aliases, or re-export tracking.
+- Source files whose only env spelling uses unicode escapes in identifiers
+  (e.g. `process.\u0065nv`) are skipped by a cheap pre-check before parsing
+  and therefore not detected. Real-world code does not use this: every
+  supported construct contains a literal "env" / "dotenv" / "loadEnvFile".
 
 `.env` handling:
 

@@ -230,7 +230,12 @@ export function analyzeSource(source: string): SourceAnalysis {
 	const loaders: EnvLoader[] = [];
 	const dotenvNames = new Set<string>();
 	const localShadows = new Set<string>();
-	collectLoaderContext(sourceFile, dotenvNames, localShadows);
+	// loader detection only needs the dotenv/loadEnvFile names; specifiers and
+	// identifiers are case-sensitive, so both can only appear in files that
+	// literally contain these strings — files without them skip the pre-pass
+	if (source.includes("dotenv") || source.includes("loadEnvFile")) {
+		collectLoaderContext(sourceFile, dotenvNames, localShadows);
+	}
 
 	const visit = (node: TypeScript.Node): void => {
 		// Dot notation on a known env object: `process.env.NAME`,

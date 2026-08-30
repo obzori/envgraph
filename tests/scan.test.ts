@@ -74,6 +74,30 @@ test("detects multiple different variables", () => {
 	);
 });
 
+test("files without any env spelling skip the parse but stay counted", () => {
+	withProject(
+		{ "src/plain.ts": "export const answer = 42;\n" },
+		(root) => {
+			const result = scanProject(root);
+			assert.equal(result.variables.length, 0);
+			assert.equal(result.loaders.length, 0);
+			assert.equal(result.errors.length, 0);
+			assert.equal(result.scannedFiles, 1);
+		},
+	);
+});
+
+test("env access with whitespace around the dot is still detected", () => {
+	withProject(
+		{ "src/spaced.ts": "const { TOKEN } = process . env;\n" },
+		(root) => {
+			const result = scanProject(root);
+			assert.deepEqual(names(result), ["TOKEN"]);
+			assert.equal(result.loaders.length, 0);
+		},
+	);
+});
+
 test("duplicate usages are recorded as one variable with all locations", () => {
 	withProject(
 		{

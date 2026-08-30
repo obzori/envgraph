@@ -96,8 +96,15 @@ export function scanProject(root: string, options?: ScanOptions): ScanResult {
 
 		let accesses;
 		try {
-			// one parse per file: accesses and loaders share a single AST walk
-			const analysis = analyzeSource(source);
+			// one parse per file: accesses and loaders share a single AST walk.
+			// Every statically-detectable construct ("process.env",
+			// "import.meta.env", "Bun.env", "Deno.env", "dotenv", "loadEnvFile")
+			// literally spells "env" in the source, so a file without it cannot
+			// contain a match — skip the parse entirely (see
+			// docs/limitations.md for the unicode-escape edge case)
+			const analysis = /env/i.test(source)
+				? analyzeSource(source)
+				: { accesses: [], loaders: [] };
 			accesses = analysis.accesses;
 			for (const loader of analysis.loaders) {
 				loaders.push({ ...loader, file });
